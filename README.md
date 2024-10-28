@@ -1,4 +1,4 @@
-## Atomic Datasets
+# Atomic Datasets
 
 This repository contains the following 3D molecular datasets:
 - QM9
@@ -8,6 +8,11 @@ This repository contains the following 3D molecular datasets:
 as well as the following toy datasets:
 - Platonic Solids
 - 3D Tetris
+
+## Installation
+```bash
+pip install git+https://github.com/atomicarchitects/datasets
+```
 
 ## Citation
 
