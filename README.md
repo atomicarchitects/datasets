@@ -14,6 +14,23 @@ as well as the following toy datasets:
 pip install git+https://github.com/atomicarchitects/datasets
 ```
 
+## Example
+```python
+from atomic_datasets.datasets import QM9Dataset
+
+dataset = QM9Dataset(
+    root_dir="data/qm9",
+    check_molecule_sanity=True,
+    use_edm_splits=True,
+    num_train_molecules=10,
+    num_val_molecules=10,
+    num_test_molecules=10,
+)
+
+for graph in dataset.all_structures():
+    # graph is a jraph.GraphsTuple object
+```
+
 ## Citation
 
 If you use this repository, please cite the original papers:
