@@ -4,6 +4,7 @@ This repository contains the following 3D molecular datasets:
 - QM9
 - GEOM (Drugs)
 - tmQM
+
 as well as the following toy datasets:
 - Platonic Solids
 - 3D Tetris
