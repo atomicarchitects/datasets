@@ -15,23 +15,7 @@ from atomic_datasets.periodic_table import PeriodicTable
 TMQM_URL = "https://github.com/bbskjelstad/tmqm.git"
 
 
-def _molecule_to_structure(molecule: ase.Atoms) -> jraph.GraphsTuple:
-    """Converts a molecule to a jraph.GraphsTuple object."""
-    return jraph.GraphsTuple(
-        nodes=dict(
-            positions=np.asarray(molecule.positions),
-            species=molecule.numbers - 1
-        ),
-        edges=None,
-        receivers=None,
-        senders=None,
-        globals=None,
-        n_node=np.asarray([len(molecule.numbers)]),
-        n_edge=None,
-    )
-
-
-class TMQMDataset(InMemoryDataset):
+class tmQMDataset(InMemoryDataset):
     """TMQM dataset."""
 
     def __init__(self, root_dir: str, num_train_molecules: int, 
@@ -115,7 +99,7 @@ def load_tmqm(root_dir: str) -> List[ase.Atoms]:
         mol_as_ase = ase.io.read(os.path.join(xyzs_path, mol_file), format="xyz")
         if mol_as_ase is None:
             continue
-        mols.append(_molecule_to_structure(mol_as_ase))
+        mols.append(utils.ase_atoms_to_structure(mol_as_ase))
 
     logging.info(f"Loaded {len(mols)} molecules.")
     return mols

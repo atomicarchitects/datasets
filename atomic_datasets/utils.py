@@ -2,15 +2,16 @@
 
 from typing import Dict
 import os
-
 import logging
-import jax.numpy as jnp
+
+import ase
+import numpy as np
+import jraph
 import tqdm
 import git
 import zipfile
 import tarfile
 import urllib
-import ml_collections
 
 
 def clone_url(url: str, root: str) -> str:
@@ -89,3 +90,20 @@ def extract_tar(path: str, root: str):
     logging.info(f"Extracting {path} to {root}...")
     with tarfile.TarFile(path, "r") as f:
         f.extractall(path=root)
+
+
+def ase_atoms_to_structure(molecule: ase.Atoms) -> jraph.GraphsTuple:
+    """Converts an ase Atoms object to a jraph.GraphsTuple object."""
+    return jraph.GraphsTuple(
+        nodes=dict(
+            positions=np.asarray(molecule.positions),
+            species=molecule.numbers - 1
+        ),
+        edges=None,
+        receivers=None,
+        senders=None,
+        globals=None,
+        n_node=np.asarray([len(molecule.numbers)]),
+        n_edge=None,
+    )
+
