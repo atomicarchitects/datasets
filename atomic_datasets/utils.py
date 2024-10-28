@@ -3,17 +3,14 @@
 from typing import Dict
 import os
 
+import logging
 import jax.numpy as jnp
-from absl import logging
 import tqdm
-from git import Repo
+import git
 import zipfile
 import tarfile
 import urllib
 import ml_collections
-
-
-
 
 
 def clone_url(url: str, root: str) -> str:
@@ -25,7 +22,7 @@ def clone_url(url: str, root: str) -> str:
         return repo_path
 
     logging.info(f"Cloning {url} to {repo_path}")
-    Repo.clone_from(url, repo_path)
+    git.Repo.clone_from(url, repo_path)
 
     return repo_path
 

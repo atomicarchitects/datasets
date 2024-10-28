@@ -77,7 +77,7 @@ def load_geom_drugs(root_dir: str) -> List[jraph.GraphsTuple]:
         species = atomic_numbers.searchsorted(atom_types)
 
         structure = jraph.GraphsTuple(
-            nodes=datatypes.NodesInfo(positions=atom_positions, species=species),
+            nodes=dict(positions=atom_positions, species=species),
             edges=None,
             senders=None,
             receivers=None,

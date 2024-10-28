@@ -22,6 +22,10 @@ dependencies = [
     "ase",
     "rdkit",
     "jraph",
+    "ml_collections",
+    "GitPython",
+    "tqdm",
+    "sh",
 ]
 
 [project.optional-dependencies]
@@ -29,6 +33,7 @@ dev = [
     "pytest>=7.0",
     "ruff>=0.2.0",
     "mypy>=0.960",
+    "ipykernel>=6.0",
 ]
 visualization = [
     "matplotlib>=3.5",

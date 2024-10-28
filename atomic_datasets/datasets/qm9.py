@@ -9,8 +9,8 @@ import ase
 import jraph
 import rdkit.Chem as Chem
 
-from atomic_datasets import InMemoryDataset
 from atomic_datasets import utils
+from atomic_datasets import InMemoryDataset
 
 QM9_URL = (
     "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/molnet_publish/qm9.zip"
@@ -122,7 +122,7 @@ def load_qm9(
 
         # Convert to Structure.
         structure = jraph.GraphsTuple(
-            nodes=datatypes.NodesInfo(
+            nodes=dict(
                 positions=np.asarray(mol.GetConformer().GetPositions()),
                 species=np.searchsorted(
                     atomic_numbers,

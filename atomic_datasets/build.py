@@ -2,14 +2,15 @@ from typing import Dict
 import numpy as np
 import ml_collections
 
-from symphony.data.datasets import dataset, platonic_solids, qm9, geom_drugs, tmqm
+from atomic_datasets import dataset
+from atomic_datasets.datasets import QM9Dataset, PlatonicSolidsDataset, GEOMDrugsDataset, TMQMDataset
 
 
 def get_dataset(config: ml_collections.ConfigDict) -> dataset.InMemoryDataset:
     """Creates the dataset of structures, as specified in the config."""
 
     if config.dataset == "qm9":
-        return qm9.QM9Dataset(
+        return QM9Dataset(
             root_dir=config.root_dir,
             check_molecule_sanity=config.get("check_molecule_sanity", False),
             use_edm_splits=config.use_edm_splits,
@@ -19,7 +20,7 @@ def get_dataset(config: ml_collections.ConfigDict) -> dataset.InMemoryDataset:
         )
     
     if config.dataset == "tmqm":
-        return tmqm.TMQMDataset(
+        return TMQMDataset(
             root_dir=config.root_dir,
             num_train_molecules=config.num_train_molecules,
             num_val_molecules=config.num_val_molecules,
@@ -27,14 +28,14 @@ def get_dataset(config: ml_collections.ConfigDict) -> dataset.InMemoryDataset:
         )
 
     if config.dataset == "platonic_solids":
-        return platonic_solids.PlatonicSolidsDataset(
+        return PlatonicSolidsDataset(
             train_solids=config.train_solids,
             val_solids=config.val_solids,
             test_solids=config.test_solids,
         )
 
     if config.dataset == "geom_drugs":
-        return geom_drugs.GEOMDrugsDataset(
+        return GEOMDrugsDataset(
             root_dir=config.root_dir,
             use_gcdm_splits=config.use_gcdm_splits,
             num_train_molecules=config.num_train_molecules,
@@ -50,13 +51,13 @@ def get_dataset(config: ml_collections.ConfigDict) -> dataset.InMemoryDataset:
 def get_atomic_numbers(dataset: str) -> Dict[str, int]:
     """Returns a dictionary mapping atomic symbols to atomic numbers."""
     if dataset == "qm9":
-        return qm9.QM9Dataset.get_atomic_numbers()
+        return QM9Dataset.get_atomic_numbers()
     elif dataset == "tmqm":
-        return tmqm.TMQMDataset.get_atomic_numbers()
+        return TMQMDataset.get_atomic_numbers()
     elif dataset == "platonic_solids":
-        return platonic_solids.PlatonicSolidsDataset.get_atomic_numbers()
+        return PlatonicSolidsDataset.get_atomic_numbers()
     elif dataset == "geom_drugs":
-        return geom_drugs.GEOMDrugsDataset.get_atomic_numbers()
+        return GEOMDrugsDataset.get_atomic_numbers()
     else:
         raise ValueError(f"Unknown dataset: {dataset}")
 

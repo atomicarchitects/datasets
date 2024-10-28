@@ -2,12 +2,15 @@ from typing import List, Iterable, Dict, Set
 import logging
 import os
 
-import tqdm
 import sh
+import tqdm
 import numpy as np
 import ase
 import jraph
 
+from atomic_datasets import utils
+from atomic_datasets import InMemoryDataset
+from atomic_datasets.periodic_table import PeriodicTable
 
 TMQM_URL = "https://github.com/bbskjelstad/tmqm.git"
 
