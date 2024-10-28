@@ -1,0 +1,81 @@
+[project]
+name = "atomic-datasets"
+version = "0.1.0"
+description = "Datasets for the Atomic Architects!"
+authors = [
+    { name = "Ameya Daigavane" },
+]
+license = {file = "LICENSE"}
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Scientific/Engineering :: Chemistry",
+    "Topic :: Database",
+]
+dependencies = [
+    "numpy",
+    "pandas",
+    "ase",
+    "rdkit",
+    "jraph",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "ruff>=0.2.0",
+    "mypy>=0.960",
+]
+visualization = [
+    "matplotlib>=3.5",
+    "seaborn>=0.12",
+]
+
+[project.urls]
+Homepage = "https://github.com/atomicarchitects/datasets"
+Repository = "https://github.com/atomicarchitects/datasets.git"
+
+[tool.ruff]
+target-version = "py38"
+line-length = 88
+fix = true
+unsafe-fixes = false
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "B",   # flake8-bugbear
+    "I",   # isort
+    "UP",  # pyupgrade
+    "N",   # pep8-naming
+    "RUF", # ruff-specific rules
+    "D",   # pydocstring
+]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-ra -q"
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["atomic_datasets"]
+exclude = ["tests*"]
