@@ -1,13 +1,12 @@
-from typing import Dict, List, Optional, Sequence, Set
+from typing import Dict, Set, Optional, Sequence, Iterable
 
 import numpy as np
-import jraph
 
-from atomic_datasets import InMemoryDataset
+from atomic_datasets import datatypes
 from atomic_datasets.datasets.platonic_solids import _solid_to_structure
 
 
-class TetrisDataset(InMemoryDataset):
+class TetrisDataset(datatypes.InMemoryMolecularDataset):
     """Dataset of 3D Tetris shapes."""
 
     def __init__(
@@ -34,8 +33,8 @@ class TetrisDataset(InMemoryDataset):
     def get_atomic_numbers() -> np.ndarray:
         return np.asarray([1])
 
-    def structures(self) -> List[jraph.GraphsTuple]:
-        """Returns the structures for the Platonic solids."""
+    def __iter__(self) -> Iterable[datatypes.MolecularGraph]:
+        """Returns the structures for the Tetris solids."""
         # Taken from https://docs.e3nn.org/en/stable/examples/tetris_gate.html.
         solids = [
             [(0, 0, 0), (0, 0, 1), (1, 0, 0), (1, 1, 0)],   # chiral_shape_1
@@ -50,7 +49,7 @@ class TetrisDataset(InMemoryDataset):
 
         # Convert to Structures.
         structures = [_solid_to_structure(solid) for solid in solids]
-        return structures
+        return iter(structures)
 
     def split_indices(self) -> Dict[str, Set[int]]:
         """Returns the split indices for the Platonic solids."""

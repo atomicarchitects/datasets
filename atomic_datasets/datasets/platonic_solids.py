@@ -3,7 +3,7 @@ from typing import List, Set, Dict, Sequence, Optional
 import numpy as np
 import jraph
 
-from atomic_datasets import InMemoryDataset
+from atomic_datasets import datatypes
 
 
 def _compute_first_node_min_distance(solid: np.ndarray) -> float:
@@ -27,7 +27,7 @@ def _solid_to_structure(solid: np.ndarray) -> jraph.GraphsTuple:
     )
 
 
-class PlatonicSolidsDataset(InMemoryDataset):
+class PlatonicSolidsDataset(datatypes.InMemoryMolecularDataset):
     """Dataset of platonic solids."""
 
     def __init__(
@@ -54,7 +54,7 @@ class PlatonicSolidsDataset(InMemoryDataset):
     def get_atomic_numbers() -> np.ndarray:
         return np.asarray([1])
 
-    def structures(self) -> List[jraph.GraphsTuple]:
+    def __iter__(self) -> List[GraphData]:
         """Returns the structures for the Platonic solids."""
         # Taken from Wikipedia.
         # https://en.wikipedia.org/wiki/Platonic_solid
@@ -134,7 +134,7 @@ class PlatonicSolidsDataset(InMemoryDataset):
 
         # Convert to Structures.
         structures = [_solid_to_structure(solid) for solid in solids]
-        return structures
+        return iter(structures)
 
     def split_indices(self) -> Dict[str, Set[int]]:
         """Returns the split indices for the Platonic solids."""

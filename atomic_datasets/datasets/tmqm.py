@@ -9,13 +9,14 @@ import ase
 import jraph
 
 from atomic_datasets import utils
-from atomic_datasets import InMemoryDataset
-from atomic_datasets.periodic_table import PeriodicTable
+from atomic_datasets import datatypes
+from atomic_datasets import periodic_table
+
 
 TMQM_URL = "https://github.com/bbskjelstad/tmqm.git"
 
 
-class tmQMDataset(InMemoryDataset):
+class tmQMDataset(datatypes.InMemoryMolecularDataset):
     """TMQM dataset."""
 
     def __init__(self, root_dir: str, num_train_molecules: int, 
@@ -39,17 +40,16 @@ class tmQMDataset(InMemoryDataset):
     def get_atomic_numbers() -> np.ndarray:
         return np.arange(1, 81)
 
-    def structures(self) -> Iterable[jraph.GraphsTuple]:
+    def __iter__(self) -> Iterable[datatypes.MolecularGraph]:
         if self.all_structures == None:
             self.all_structures = load_tmqm(self.root_dir)
             logging.info("Loaded TMQM dataset.")
-        return self.all_structures 
+        return iter(self.all_structures)
 
     @staticmethod
     def species_to_atom_types() -> Dict[int, str]:
-        ptable = PeriodicTable()
         return {
-            i: ptable.get_symbol(i) for i in range(80)
+            i: periodic_table.PeriodicTable().get_symbol(i) for i in range(80)
         }
 
     def split_indices(self) -> Dict[str, Set[int]]:
@@ -64,7 +64,7 @@ class tmQMDataset(InMemoryDataset):
         return permuted_indices
 
 
-def load_tmqm(root_dir: str) -> List[ase.Atoms]:
+def load_tmqm(root_dir: str) -> List[datatypes.MolecularGraph]:
     """Load the TMQM dataset."""
     mols = []
     data_path = root_dir

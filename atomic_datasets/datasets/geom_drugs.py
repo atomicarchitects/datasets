@@ -5,10 +5,12 @@ import logging
 import numpy as np
 import jraph
 
-from atomic_datasets import InMemoryDataset
+from atomic_datasets import datatypes
 
 
-class GEOMDrugsDataset(InMemoryDataset):
+class GEOMDrugsDataset(datatypes.InMemoryMolecularDataset):
+    """GEOM (Drugs) dataset."""
+
     def __init__(
         self,
         root_dir: str,
@@ -29,10 +31,10 @@ class GEOMDrugsDataset(InMemoryDataset):
     def get_atomic_numbers() -> np.ndarray:
         return np.asarray([1, 5, 6, 7, 8, 9, 13, 14, 15, 16, 17, 33, 35, 53, 80, 83])
 
-    def structures(self) -> Iterable[jraph.GraphsTuple]:
+    def __iter__(self) -> Iterable[datatypes.MolecularGraph]:
         if self.all_structures is None:
             self.all_structures = load_geom_drugs(self.root_dir)
-        return self.all_structures
+        return iter(self.all_structures)
 
     def split_indices(self) -> Dict[str, np.ndarray[int]]:
         """Returns the indices for the train, val, and test splits."""

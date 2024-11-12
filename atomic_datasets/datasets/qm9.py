@@ -10,14 +10,14 @@ import jraph
 import rdkit.Chem as Chem
 
 from atomic_datasets import utils
-from atomic_datasets import InMemoryDataset
+from atomic_datasets import datatypes
 
 QM9_URL = (
     "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/molnet_publish/qm9.zip"
 )
 
 
-class QM9Dataset(InMemoryDataset):
+class QM9Dataset(datatypes.InMemoryMolecularDataset):
     """QM9 dataset."""
 
     def __init__(
@@ -40,17 +40,17 @@ class QM9Dataset(InMemoryDataset):
         self.num_train_molecules = num_train_molecules
         self.num_val_molecules = num_val_molecules
         self.num_test_molecules = num_test_molecules
-        self.all_structures = None
+        self.all_data = None
 
     @staticmethod
     def get_atomic_numbers() -> np.ndarray:
         return np.asarray([1, 6, 7, 8, 9])
 
-    def structures(self) -> Iterable[jraph.GraphsTuple]:
-        if self.all_structures is None:
-            self.all_structures = load_qm9(self.root_dir, self.check_molecule_sanity)
+    def __iter__(self) -> Iterable[datatypes.MolecularGraph]:
+        if self.all_data is None:
+            self.all_data = load_qm9(self.root_dir, self.check_molecule_sanity)
 
-        return self.all_structures
+        return iter(self.all_data)
 
     def split_indices(self) -> Dict[str, np.ndarray]:
         """Return a dictionary of indices for each split."""
@@ -73,26 +73,6 @@ class QM9Dataset(InMemoryDataset):
         return splits
 
 
-def molecule_sanity(mol: Chem.Mol) -> bool:
-    """Check that the molecule passes some basic sanity checks from Posebusters.
-    Source: https://github.com/maabuu/posebusters/blob/main/posebusters/modules/sanity.py
-    """
-
-    errors = Chem.rdmolops.DetectChemistryProblems(
-        mol, sanitizeOps=Chem.rdmolops.SanitizeFlags.SANITIZE_ALL
-    )
-    types = [error.GetType() for error in errors]
-    num_frags = len(Chem.rdmolops.GetMolFrags(mol, asMols=False, sanitizeFrags=False))
-
-    results = {
-        "passes_valence_checks": "AtomValenceException" not in types,
-        "passes_kekulization": "AtomKekulizeException" not in types,
-        "passes_rdkit_sanity_checks": len(errors) == 0,
-        "all_atoms_connected": num_frags <= 1,
-    }
-    return all(results.values())
-
-
 def load_qm9(
     root_dir: str,
     check_molecule_sanity: bool = True,
@@ -109,25 +89,24 @@ def load_qm9(
     supplier = Chem.SDMolSupplier(raw_mols_path, removeHs=False, sanitize=False)
 
     atomic_numbers = QM9Dataset.get_atomic_numbers()
-    all_structures = []
+    all_data = []
     for mol in supplier:
         if mol is None:
             continue
 
         # Check that the molecule passes some basic checks from Posebusters.
-        if check_molecule_sanity:
-            sane = molecule_sanity(mol)
-            if not sane:
-                continue
+        if check_molecule_sanity and not utils.is_molecule_sane(mol):
+            continue
 
         # Convert to Structure.
-        structure = jraph.GraphsTuple(
+        structure = datatypes.MolecularGraph(
             nodes=dict(
                 positions=np.asarray(mol.GetConformer().GetPositions()),
                 species=np.searchsorted(
                     atomic_numbers,
                     np.asarray([atom.GetAtomicNum() for atom in mol.GetAtoms()]),
                 ),
+
             ),
             edges=None,
             receivers=None,
@@ -136,9 +115,10 @@ def load_qm9(
             n_node=np.asarray([mol.GetNumAtoms()]),
             n_edge=None,
         )
-        all_structures.append(structure)
 
-    return all_structures
+        all_data.append((structure, aux_data))
+
+    return all_data
 
 
 def get_qm9_splits(

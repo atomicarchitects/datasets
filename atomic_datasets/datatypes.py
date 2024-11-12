@@ -1,11 +1,15 @@
-from typing import Iterable, Dict, Sequence
+from typing import NamedTuple, Dict, Optional, Iterable, Sequence
 import abc
 
 import jraph
+import jax.numpy as jnp
 
 
-class InMemoryDataset(abc.ABC):
-    """Abstract base class for in-memory datasets."""
+MolecularGraph = jraph.GraphsTuple
+
+
+class InMemoryMolecularDataset(abc.ABC):
+    """Abstract base class for in-memory molecular datasets."""
 
     def num_species(self) -> int:
         """Return the number of atom types."""
@@ -16,8 +20,9 @@ class InMemoryDataset(abc.ABC):
         """Returns a sorted list of the atomic numbers observed in the dataset."""
 
     @abc.abstractmethod
-    def structures(self) -> Iterable[jraph.GraphsTuple]:
-        """Return a list of all completed structures."""
+    def __iter__(self) -> Iterable[MolecularGraph]:
+        """Return an iterator over the dataset."""
+        pass
 
     @abc.abstractmethod
     def split_indices(self) -> Dict[str, Sequence[int]]:
