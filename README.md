@@ -7,11 +7,14 @@ This repository contains the following 3D molecular datasets:
 
 as well as the following toy datasets:
 - Platonic Solids
-- 3D Tetris
+- 3D Tetris Pieces
 
 ## Installation
-Install [uv](https://docs.astral.sh/uv/getting-started/installation/).
-Then, run:
+Install directly from GitHub with [pip](https://pypi.org/project/pip/):
+```bash
+pip install git+https://github.com/atomicarchitects/datasets
+```
+or [uv](https://docs.astral.sh/uv/getting-started/installation/):
 ```bash
 uv pip install git+https://github.com/atomicarchitects/datasets
 ```
@@ -22,7 +25,7 @@ from atomic_datasets.datasets import QM9Dataset
 
 dataset = QM9Dataset(
     root_dir="data/qm9",
-    check_molecule_sanity=True,
+    check_with_rdkit=True,
 )
 
 for graph in dataset:
