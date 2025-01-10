@@ -1,80 +1,62 @@
-from typing import List, Iterable, Dict, Set
-import logging
+from typing import Iterable
 import os
 
-import sh
 import tqdm
 import numpy as np
-import ase
+import ase.io
 
 from atomic_datasets import utils
 from atomic_datasets import datatypes
 
 
-TMQM_URL = "https://github.com/bbskjelstad/tmqm.git"
+TMQM_URL = r"https://github.com/bbskjelstad/tmqm.git"
 
 
-class tmQMDataset(datatypes.InMemoryMolecularDataset):
+class tmQMDataset(datatypes.MolecularDataset):
     """TMQM dataset."""
 
-    def __init__(self, root_dir: str, num_train_molecules: int, 
-                 num_val_molecules: int, num_test_molecules: int):
+    def __init__(self, root_dir: str):
         super().__init__()
         
         if root_dir is None:
             raise ValueError("root_dir must be provided.")
-
-        if num_train_molecules is None or num_val_molecules is None or num_test_molecules is None:
-            raise ValueError("num_train_molecules, num_val_molecules, and num_test_molecules must be provided.")
             
         self.root_dir = root_dir
-        self.num_train_molecules = num_train_molecules
-        self.num_val_molecules = num_val_molecules
-        self.num_test_molecules = num_test_molecules
-
-        self.all_structures = None
+        self.preprocessed = False
 
     @staticmethod
     def get_atomic_numbers() -> np.ndarray:
         return np.arange(1, 81)
 
+    def preprocess(self):
+        preprocess(self.root_dir)
+        self.preprocessed = True
+
     def __iter__(self) -> Iterable[datatypes.Graph]:
+        if not self.preprocessed:
+            self.preprocess()
+
         while True:
             yield from load_tmQM(self.root_dir)
 
-    def split_indices(self) -> Dict[str, Set[int]]:
-        # Create a random permutation of the indices.
-        np.random.seed(0)
-        indices = np.random.permutation(86665)
-        permuted_indices = {
-            "train": indices[:self.num_train_molecules],
-            "val": indices[self.num_train_molecules:self.num_train_molecules + self.num_val_molecules],
-            "test": indices[self.num_train_molecules + self.num_val_molecules:self.num_train_molecules + self.num_val_molecules + self.num_test_molecules],
-        }
-        return permuted_indices
 
+def preprocess(root_dir: str):
+    """Preprocess the files for the tmQM dataset."""
+    if not os.path.exists(root_dir):
+        os.makedirs(root_dir)
 
-def load_tmQM(root_dir: str) -> List[datatypes.Graph]:
-    """Load the TMQM dataset."""
-    mols = []
-    data_path = root_dir
-    xyzs_path = os.path.join(data_path, "xyz")
+    xyzs_path = os.path.join(root_dir, "xyz")
     if os.path.exists(xyzs_path):
-        logging.info(f"Using downloaded data: {xyzs_path}")
+        print(f"Using downloaded data: {xyzs_path}")
     else:
-        if not os.path.exists(root_dir):
-            os.makedirs(root_dir)
-        logging.info(f"Cloning TMQM repository to {root_dir}...")
+        print(f"Cloning tmQM repository to {root_dir}")
         _ = utils.clone_url(TMQM_URL, root_dir)
-        if not os.path.exists(xyzs_path):
-            os.makedirs(xyzs_path)
+        os.makedirs(xyzs_path)
 
         for i in range(1, 3):
-            gz_path = os.path.join(data_path, "tmqm/data", f"tmQM_X{i}.xyz.gz")
-            logging.info(f"Unzipping {gz_path}...")
-            sh.gunzip(gz_path)
+            gz_path = os.path.join(root_dir, "tmqm/tmQM", f"tmQM_X{i}.xyz.gz")
 
-            mol_file = os.path.join(data_path, "tmqm/data", f"tmQM_X{i}.xyz")
+            mol_file = utils.extract_gz(gz_path)
             with open(mol_file, "r") as f:
                 all_xyzs = f.read().split("\n\n")
                 for xyz_n, xyz in enumerate(all_xyzs):
@@ -85,11 +67,13 @@ def load_tmQM(root_dir: str) -> List[datatypes.Graph]:
                     with open(os.path.join(xyzs_path, f"X{i}_{xyz_n}.xyz"), "w") as f:
                         f.write(xyz)
 
-    for mol_file in tqdm.tqdm(os.listdir(xyzs_path)):
-        mol_as_ase = ase.io.read(os.path.join(xyzs_path, mol_file), format="xyz")
+
+def load_tmQM(root_dir: str) -> Iterable[datatypes.Graph]:
+    """Load the tmQM dataset."""
+    xyzs_path = os.path.join(root_dir, "xyz")
+    for mol_file in tqdm.tqdm(sorted(os.listdir(xyzs_path))):
+        mol_file = os.path.join(xyzs_path, mol_file)
+        mol_as_ase = ase.io.read(mol_file, format="xyz")
         if mol_as_ase is None:
             continue
-        mols.append(utils.ase_atoms_to_graph(mol_as_ase))
-
-    logging.info(f"Loaded {len(mols)} molecules.")
-    return mols
+        yield utils.ase_atoms_to_graph(mol_as_ase)

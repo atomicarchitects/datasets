@@ -11,18 +11,16 @@ import rdkit.Chem as Chem
 from atomic_datasets import utils
 from atomic_datasets import datatypes
 
-QM9_URL = (
-    "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/molnet_publish/qm9.zip"
-)
+QM9_URL = r"https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/molnet_publish/qm9.zip"
 
 
-class QM9Dataset(datatypes.InMemoryMolecularDataset):
+class QM9Dataset(datatypes.MolecularDataset):
     """QM9 dataset."""
 
     def __init__(
         self,
         root_dir: str,
-        check_molecule_sanity: bool,
+        check_with_rdkit: bool,
     ):
         super().__init__()
 
@@ -30,28 +28,44 @@ class QM9Dataset(datatypes.InMemoryMolecularDataset):
             raise ValueError("root_dir must be provided.")
 
         self.root_dir = root_dir
-        self.check_molecule_sanity = check_molecule_sanity
-        self.all_data = None
+        self.check_with_rdkit = check_with_rdkit
+        self.preprocessed = False
 
     @staticmethod
     def get_atomic_numbers() -> np.ndarray:
         return np.asarray([1, 6, 7, 8, 9])
 
+    def preprocess(self):
+        preprocess(self.root_dir)
+        self.preprocessed = True
+
     def __iter__(self) -> Iterable[datatypes.Graph]:
+        if not self.preprocessed:
+            self.preprocess()
+
         while True:
-            yield from load_qm9(self.root_dir, self.check_molecule_sanity)
+            yield from load_qm9(self.root_dir, self.check_with_rdkit)
 
-def load_qm9(
-    root_dir: str,
-    check_molecule_sanity: bool = True,
-) -> Iterable[datatypes.Graph]:
-    """Load the QM9 dataset."""
 
+def preprocess(root_dir: str):
+    """Preprocess the files for the QM9 dataset."""
     if not os.path.exists(root_dir):
         os.makedirs(root_dir)
 
+    print(f"Downloading QM9 dataset to {root_dir}")
     path = utils.download_url(QM9_URL, root_dir)
     utils.extract_zip(path, root_dir)
+    print("Download complete.")
+
+    readme = os.path.join(root_dir, "QM9_README")
+    with open(readme) as f:
+        print("Dataset description:", f.read())
+
+def load_qm9(
+    root_dir: str,
+    check_with_rdkit: bool = True,
+) -> Iterable[datatypes.Graph]:
+    """Load the QM9 dataset."""
 
     raw_mols_path = os.path.join(root_dir, "gdb9.sdf")
     supplier = Chem.SDMolSupplier(raw_mols_path, removeHs=False, sanitize=False)
@@ -59,29 +73,23 @@ def load_qm9(
     properties_csv_path = os.path.join(root_dir, "gdb9.sdf.csv")
     properties = pd.read_csv(properties_csv_path)
 
-    readme = os.path.join(root_dir, "QM9_README")
-    print("Dataset description:", open(readme).read())
-
-    atomic_numbers = QM9Dataset.get_atomic_numbers()
     for mol in supplier:
         if mol is None:
             raise ValueError("Failed to load molecule.")
 
         # Check that the molecule passes some basic checks from Posebusters.
-        if check_molecule_sanity and not utils.is_molecule_sane(mol):
+        if check_with_rdkit and not utils.is_molecule_sane(mol):
             continue
 
         mol_id = mol.GetProp("_Name")
         mol_properties = properties[properties["mol_id"] == mol_id].to_dict(orient="records")[0]
 
-        # Convert to graph.
+        atomic_numbers = np.asarray([atom.GetAtomicNum() for atom in mol.GetAtoms()])
+
         yield datatypes.Graph(
             nodes=dict(
                 positions=np.asarray(mol.GetConformer().GetPositions()),
-                species=np.searchsorted(
-                    atomic_numbers,
-                    np.asarray([atom.GetAtomicNum() for atom in mol.GetAtoms()]),
-                ),
+                species=QM9Dataset.atomic_numbers_to_species(atomic_numbers)
             ),
             edges=None,
             receivers=None,

@@ -1,27 +1,24 @@
 """Utilities for downloading and extracting datasets."""
 
 import os
-import logging
 
-import ase
-import numpy as np
 import tqdm
+import sh
 import git
 import zipfile
 import tarfile
 import urllib
 
-from atomic_datasets import datatypes
 
 def clone_url(url: str, root: str) -> str:
     """Clone if repo does not exist in root already. Returns path to repo."""
     repo_path = os.path.join(root, url.rpartition("/")[-1].rpartition(".")[0])
 
     if os.path.exists(repo_path):
-        logging.info(f"Using cloned repo: {repo_path}")
+        print(f"Using cloned repo: {repo_path}")
         return repo_path
 
-    logging.info(f"Cloning {url} to {repo_path}")
+    print(f"Cloning {url} to {repo_path}")
     git.Repo.clone_from(url, repo_path)
 
     return repo_path
@@ -34,13 +31,13 @@ def download_url(url: str, root: str) -> str:
 
     try:
         if os.path.exists(file_path):
-            logging.info(f"Using downloaded file: {file_path}")
+            print(f"Using downloaded file: {file_path}")
             return file_path
         data = urllib.request.urlopen(url)
     except urllib.error.URLError:
         # No internet connection
         if os.path.exists(file_path):
-            logging.info(f"No internet connection! Using downloaded file: {file_path}")
+            print(f"No internet connection! Using downloaded file: {file_path}")
             return file_path
 
         raise ValueError(f"Could not download {url}")
@@ -50,11 +47,10 @@ def download_url(url: str, root: str) -> str:
 
     if os.path.exists(file_path):
         if os.path.getsize(file_path) == total_size:
-            logging.info(f"Using downloaded and verified file: {file_path}")
+            print(f"Using downloaded and verified file: {file_path}")
             return file_path
 
-    logging.info(f"Downloading {url} to {file_path}")
-
+    print(f"Downloading {url} to {file_path}")
     with open(file_path, "wb") as f:
         with tqdm.tqdm(total=total_size) as pbar:
             while True:
@@ -69,25 +65,31 @@ def download_url(url: str, root: str) -> str:
 
 def extract_zip(path: str, root: str) -> None:
     """Extract zip if content does not exist in root already."""
-    logging.info(f"Extracting {path} to {root}")
+    print(f"Extracting {path} to {root}")
     with zipfile.ZipFile(path, "r") as f:
         for name in f.namelist():
             if name.endswith("/"):
-                logging.info(f"Skip directory {name}")
+                print(f"Skip directory {name}")
                 continue
             out_path = os.path.join(root, name)
             file_size = f.getinfo(name).file_size
             if os.path.exists(out_path) and os.path.getsize(out_path) == file_size:
-                logging.info(f"Skip existing file {name}")
+                print(f"Skip existing file {name}")
                 continue
-            logging.info(f"Extracting {name} to {root}")
+            print(f"Extracting {name} to {root}")
             f.extract(name, root)
 
 
 def extract_tar(path: str, root: str):
-    """Extract tar."""
-    logging.info(f"Extracting {path} to {root}...")
+    """Extract a .tar file to the root."""
+    print(f"Extracting {path} to {root}")
     with tarfile.TarFile(path, "r") as f:
         f.extractall(path=root)
 
 
+def extract_gz(path: str) -> str:
+    """Extract a .gz file, and return the path to the extracted file."""
+    print(f"Unzipping {path}")
+    sh.gunzip(path)
+    # Remove the .gz extension
+    return path[:-3]
