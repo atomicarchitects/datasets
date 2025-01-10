@@ -6,11 +6,9 @@ import sh
 import tqdm
 import numpy as np
 import ase
-import jraph
 
 from atomic_datasets import utils
 from atomic_datasets import datatypes
-from atomic_datasets import periodic_table
 
 
 TMQM_URL = "https://github.com/bbskjelstad/tmqm.git"
@@ -40,17 +38,9 @@ class tmQMDataset(datatypes.InMemoryMolecularDataset):
     def get_atomic_numbers() -> np.ndarray:
         return np.arange(1, 81)
 
-    def __iter__(self) -> Iterable[datatypes.MolecularGraph]:
-        if self.all_structures == None:
-            self.all_structures = load_tmqm(self.root_dir)
-            logging.info("Loaded TMQM dataset.")
-        return iter(self.all_structures)
-
-    @staticmethod
-    def species_to_atom_types() -> Dict[int, str]:
-        return {
-            i: periodic_table.PeriodicTable().get_symbol(i) for i in range(80)
-        }
+    def __iter__(self) -> Iterable[datatypes.Graph]:
+        while True:
+            yield from load_tmQM(self.root_dir)
 
     def split_indices(self) -> Dict[str, Set[int]]:
         # Create a random permutation of the indices.
@@ -64,7 +54,7 @@ class tmQMDataset(datatypes.InMemoryMolecularDataset):
         return permuted_indices
 
 
-def load_tmqm(root_dir: str) -> List[datatypes.MolecularGraph]:
+def load_tmQM(root_dir: str) -> List[datatypes.Graph]:
     """Load the TMQM dataset."""
     mols = []
     data_path = root_dir
@@ -99,7 +89,7 @@ def load_tmqm(root_dir: str) -> List[datatypes.MolecularGraph]:
         mol_as_ase = ase.io.read(os.path.join(xyzs_path, mol_file), format="xyz")
         if mol_as_ase is None:
             continue
-        mols.append(utils.ase_atoms_to_structure(mol_as_ase))
+        mols.append(utils.ase_atoms_to_graph(mol_as_ase))
 
     logging.info(f"Loaded {len(mols)} molecules.")
     return mols

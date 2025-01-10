@@ -1,1 +1,1 @@
-from .datatypes import MolecularGraph, Atoms, InMemoryMolecularDataset
+from .datatypes import Graph, InMemoryMolecularDataset

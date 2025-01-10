@@ -1,12 +1,11 @@
-from typing import List, Iterable, Dict
+from typing import Iterable, Dict
 
 import os
 import urllib
 
 import logging
 import numpy as np
-import ase
-import jraph
+import pandas as pd
 import rdkit.Chem as Chem
 
 from atomic_datasets import utils
@@ -24,10 +23,6 @@ class QM9Dataset(datatypes.InMemoryMolecularDataset):
         self,
         root_dir: str,
         check_molecule_sanity: bool,
-        use_edm_splits: bool,
-        num_train_molecules: int,
-        num_val_molecules: int,
-        num_test_molecules: int,
     ):
         super().__init__()
 
@@ -36,47 +31,20 @@ class QM9Dataset(datatypes.InMemoryMolecularDataset):
 
         self.root_dir = root_dir
         self.check_molecule_sanity = check_molecule_sanity
-        self.use_edm_splits = use_edm_splits
-        self.num_train_molecules = num_train_molecules
-        self.num_val_molecules = num_val_molecules
-        self.num_test_molecules = num_test_molecules
         self.all_data = None
 
     @staticmethod
     def get_atomic_numbers() -> np.ndarray:
         return np.asarray([1, 6, 7, 8, 9])
 
-    def __iter__(self) -> Iterable[datatypes.MolecularGraph]:
-        if self.all_data is None:
-            self.all_data = load_qm9(self.root_dir, self.check_molecule_sanity)
-
-        return iter(self.all_data)
-
-    def split_indices(self) -> Dict[str, np.ndarray]:
-        """Return a dictionary of indices for each split."""
-        splits = get_qm9_splits(self.root_dir, edm_splits=self.use_edm_splits)
-        requested_splits = {
-            "train": self.num_train_molecules,
-            "val": self.num_val_molecules,
-            "test": self.num_test_molecules,
-        }
-        for split_name, num_molecules in requested_splits.items():
-            original_split_size = len(splits[split_name])
-            if num_molecules > original_split_size:
-                raise ValueError(
-                    f"Requested {num_molecules} molecules for split {split_name}, but only {original_split_size} are available."
-                )
-            logging.info(
-                f"Using {num_molecules} molecules out of {original_split_size} in split {split_name}.",
-            )
-            splits[split_name] = splits[split_name][:num_molecules]
-        return splits
-
+    def __iter__(self) -> Iterable[datatypes.Graph]:
+        while True:
+            yield from load_qm9(self.root_dir, self.check_molecule_sanity)
 
 def load_qm9(
     root_dir: str,
     check_molecule_sanity: bool = True,
-) -> List[ase.Atoms]:
+) -> Iterable[datatypes.Graph]:
     """Load the QM9 dataset."""
 
     if not os.path.exists(root_dir):
@@ -88,25 +56,32 @@ def load_qm9(
     raw_mols_path = os.path.join(root_dir, "gdb9.sdf")
     supplier = Chem.SDMolSupplier(raw_mols_path, removeHs=False, sanitize=False)
 
+    properties_csv_path = os.path.join(root_dir, "gdb9.sdf.csv")
+    properties = pd.read_csv(properties_csv_path)
+
+    readme = os.path.join(root_dir, "QM9_README")
+    print("Dataset description:", open(readme).read())
+
     atomic_numbers = QM9Dataset.get_atomic_numbers()
-    all_data = []
     for mol in supplier:
         if mol is None:
-            continue
+            raise ValueError("Failed to load molecule.")
 
         # Check that the molecule passes some basic checks from Posebusters.
         if check_molecule_sanity and not utils.is_molecule_sane(mol):
             continue
 
-        # Convert to Structure.
-        structure = datatypes.MolecularGraph(
+        mol_id = mol.GetProp("_Name")
+        mol_properties = properties[properties["mol_id"] == mol_id].to_dict(orient="records")[0]
+
+        # Convert to graph.
+        yield datatypes.Graph(
             nodes=dict(
                 positions=np.asarray(mol.GetConformer().GetPositions()),
                 species=np.searchsorted(
                     atomic_numbers,
                     np.asarray([atom.GetAtomicNum() for atom in mol.GetAtoms()]),
                 ),
-
             ),
             edges=None,
             receivers=None,
@@ -114,11 +89,8 @@ def load_qm9(
             globals=None,
             n_node=np.asarray([mol.GetNumAtoms()]),
             n_edge=None,
+            properties=mol_properties,
         )
-
-        all_data.append((structure, aux_data))
-
-    return all_data
 
 
 def get_qm9_splits(

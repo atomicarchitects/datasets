@@ -1,13 +1,10 @@
 [project]
 name = "atomic-datasets"
-version = "0.1.0"
 description = "Datasets for the Atomic Architects!"
 authors = [
     { name = "Ameya Daigavane" },
 ]
 license = {file = "LICENSE"}
-readme = "README.md"
-requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -16,29 +13,14 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Chemistry",
     "Topic :: Database",
 ]
-dependencies = [
-    "numpy",
-    "pandas",
-    "ase",
-    "rdkit",
-    "jraph",
-    "ml_collections",
-    "GitPython",
-    "tqdm",
-    "sh",
-]
+dynamic = ["version", "readme", "dependencies", "optional-dependencies"]
+requires-python = ">=3.10"
 
-[project.optional-dependencies]
-dev = [
-    "pytest>=7.0",
-    "ruff>=0.2.0",
-    "mypy>=0.960",
-    "ipykernel>=6.0",
-]
-visualization = [
-    "matplotlib>=3.5",
-    "seaborn>=0.12",
-]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.in"]}
+optional-dependencies = {"dev" = {file = ["requirements-dev.in"]}, "visualization" = {file = ["requirements-visualization.in"]}}
+readme = {file = "README.md"}
 
 [project.urls]
 Homepage = "https://github.com/atomicarchitects/datasets"
@@ -74,13 +56,10 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = "-ra -q"
 
-[tool.mypy]
-python_version = "3.8"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["atomic_datasets"]
 exclude = ["tests*"]
+
+[tool.uv]
+cache-keys = [{file = "requirements.in"}]

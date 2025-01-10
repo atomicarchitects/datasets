@@ -3,7 +3,6 @@ import os
 
 import logging
 import numpy as np
-import jraph
 
 from atomic_datasets import datatypes
 
@@ -14,53 +13,20 @@ class GEOMDrugsDataset(datatypes.InMemoryMolecularDataset):
     def __init__(
         self,
         root_dir: str,
-        use_gcdm_splits: bool,
-        num_train_molecules: int,
-        num_val_molecules: int,
-        num_test_molecules: int,
     ):
         super().__init__()
         self.root_dir = root_dir
-        self.use_gcdm_splits = use_gcdm_splits
-        self.num_train_molecules = num_train_molecules
-        self.num_val_molecules = num_val_molecules
-        self.num_test_molecules = num_test_molecules
-        self.all_structures = None
 
     @staticmethod
     def get_atomic_numbers() -> np.ndarray:
         return np.asarray([1, 5, 6, 7, 8, 9, 13, 14, 15, 16, 17, 33, 35, 53, 80, 83])
 
-    def __iter__(self) -> Iterable[datatypes.MolecularGraph]:
-        if self.all_structures is None:
-            self.all_structures = load_geom_drugs(self.root_dir)
-        return iter(self.all_structures)
-
-    def split_indices(self) -> Dict[str, np.ndarray[int]]:
-        """Returns the indices for the train, val, and test splits."""
-        if not self.use_gcdm_splits:
-            raise NotImplementedError("Only GCDM splits are supported for QM9.")
-
-        splits = get_gcdm_splits(self.root_dir)
-        requested_splits = {
-            "train": self.num_train_molecules,
-            "val": self.num_val_molecules,
-            "test": self.num_test_molecules,
-        }
-        for split_name, num_molecules in requested_splits.items():
-            original_split_size = len(splits[split_name])
-            if num_molecules > original_split_size:
-                raise ValueError(
-                    f"Requested {num_molecules} molecules for split {split_name}, but only {original_split_size} are available."
-                )
-            logging.info(
-                f"Using {num_molecules} molecules out of {original_split_size} in split {split_name}."
-            )
-            splits[split_name] = splits[split_name][:num_molecules]
-        return splits
+    def __iter__(self) -> Iterable[datatypes.Graph]:
+        while True:
+            yield from load_GEOM_DRUGS(self.root_dir)
 
 
-def load_geom_drugs(root_dir: str) -> List[jraph.GraphsTuple]:
+def load_GEOM_DRUGS(root_dir: str) -> Iterable[datatypes.Graph]:
     """Adapted from https://github.com/BioinfoMachineLearning/bio-diffusion/blob/main/atomic_datasets/datamodules/components/edm/build_geom_dataset.py."""
 
     conformation_file = os.path.join(root_dir, "GEOM_drugs_30.npy")
@@ -72,13 +38,12 @@ def load_geom_drugs(root_dir: str) -> List[jraph.GraphsTuple]:
     data_list = np.split(conformers, split_indices)
     atomic_numbers = np.asarray(GEOMDrugsDataset.get_atomic_numbers())
 
-    all_structures = []
     for datum in data_list:
         atom_types = datum[:, 0].astype(int)
         atom_positions = datum[:, 1:].astype(float)
         species = atomic_numbers.searchsorted(atom_types)
 
-        structure = jraph.GraphsTuple(
+        yield datatypes.Graph(
             nodes=dict(positions=atom_positions, species=species),
             edges=None,
             senders=None,
@@ -87,13 +52,10 @@ def load_geom_drugs(root_dir: str) -> List[jraph.GraphsTuple]:
             n_node=np.array([len(atom_types)]),
             globals=None,
         )
-        all_structures.append(structure)
-
-    return all_structures
 
 
-def get_gcdm_splits(root_dir: str) -> Dict[str, np.ndarray]:
-    """Adapted from https://github.com/BioinfoMachineLearning/bio-diffusion/blob/main/atomic_datasets/datamodules/components/edm/build_geom_dataset.py."""
+def get_GCDM_splits(root_dir: str) -> Dict[str, np.ndarray]:
+    """Splits for GEOM (Drugs). Adapted from https://github.com/BioinfoMachineLearning/bio-diffusion/blob/main/atomic_datasets/datamodules/components/edm/build_geom_dataset.py."""
 
     permutation_file = os.path.join(root_dir, "GEOM_permutation.npy")
     permutation = np.load(permutation_file)

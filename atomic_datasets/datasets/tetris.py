@@ -1,9 +1,9 @@
-from typing import Dict, Set, Optional, Sequence, Iterable
+from typing import Iterable
 
 import numpy as np
 
 from atomic_datasets import datatypes
-from atomic_datasets.datasets.platonic_solids import _solid_to_structure
+from atomic_datasets.datasets.platonic_solids import to_graph
 
 
 class TetrisDataset(datatypes.InMemoryMolecularDataset):
@@ -11,32 +11,22 @@ class TetrisDataset(datatypes.InMemoryMolecularDataset):
 
     def __init__(
         self,
-        train_solids: Optional[Sequence[int]],
-        val_solids: Optional[Sequence[int]],
-        test_solids: Optional[Sequence[int]],
     ):
         super().__init__()
-
-        all_indices = range(5)
-        if train_solids is None:
-            train_solids = all_indices
-        if val_solids is None:
-            val_solids = all_indices
-        if test_solids is None:
-            test_solids = all_indices
-
-        self.train_solids = train_solids
-        self.val_solids = val_solids
-        self.test_solids = test_solids
 
     @staticmethod
     def get_atomic_numbers() -> np.ndarray:
         return np.asarray([1])
 
-    def __iter__(self) -> Iterable[datatypes.MolecularGraph]:
-        """Returns the structures for the Tetris solids."""
-        # Taken from https://docs.e3nn.org/en/stable/examples/tetris_gate.html.
-        solids = [
+    def __iter__(self) -> Iterable[datatypes.Graph]:
+        """Returns the graphs for the Tetris pieces."""
+        while True:
+            yield from load_tetris()
+
+
+def load_tetris() -> Iterable[datatypes.Graph]:
+    """3D tetris pieces as taken from https://docs.e3nn.org/en/stable/examples/tetris_gate.html."""
+    tetris_pieces = [
             [(0, 0, 0), (0, 0, 1), (1, 0, 0), (1, 1, 0)],   # chiral_shape_1
             [(0, 0, 0), (0, 0, 1), (1, 0, 0), (1, -1, 0)],  # chiral_shape_2
             [(0, 0, 0), (1, 0, 0), (0, 1, 0), (1, 1, 0)],   # square
@@ -45,16 +35,6 @@ class TetrisDataset(datatypes.InMemoryMolecularDataset):
             [(0, 0, 0), (0, 0, 1), (0, 0, 2), (0, 1, 0)],   # L
             [(0, 0, 0), (0, 0, 1), (0, 0, 2), (0, 1, 1)],   # T
             [(0, 0, 0), (1, 0, 0), (1, 1, 0), (2, 1, 0)],   # zigzag
-        ]
-
-        # Convert to Structures.
-        structures = [_solid_to_structure(solid) for solid in solids]
-        return iter(structures)
-
-    def split_indices(self) -> Dict[str, Set[int]]:
-        """Returns the split indices for the Platonic solids."""
-        return {
-            "train": self.train_solids,
-            "val": self.val_solids,
-            "test": self.test_solids,
-        }
+    ]
+    for piece in tetris_pieces:
+        yield to_graph(piece)

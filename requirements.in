@@ -1,0 +1,7 @@
+numpy
+pandas
+ase
+rdkit
+GitPython
+tqdm
+sh
