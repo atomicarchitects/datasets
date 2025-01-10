@@ -37,7 +37,7 @@ for graph in dataset:
 
 If you use this repository, please cite the original papers for the relevant datasets:
 - QM9:
-```
+```bibtex
 @article{qm9,
 	author = {Ramakrishnan, Raghunathan and Dral, Pavlo O. and Rupp, Matthias and von Lilienfeld, O. Anatole},
 	journal = {Scientific Data},
@@ -49,7 +49,7 @@ If you use this repository, please cite the original papers for the relevant dat
 }
 ```
 - GEOM:
-```
+```bibtex
 @article{geom,
 	author = {Axelrod, Simon and G{\'o}mez-Bombarelli, Rafael},
 	journal = {Scientific Data},
@@ -60,8 +60,21 @@ If you use this repository, please cite the original papers for the relevant dat
 	year = {2022}
 }
 ```
-- tmQM:
+Preprocessed GEOM (Drugs) data was obtained from:
+```bibtex
+@dataset{geom-preprocessed,
+	author = {Alex Morehead and Jianlin, Cheng},
+	doi = {10.5281/zenodo.7881981},
+	month = apr,
+	publisher = {Zenodo},
+	title = {Replication Data for: EDM},
+	url = {https://doi.org/10.5281/zenodo.7881981},
+	version = {1.2.0},
+	year = 2023,
+	bdsk-url-1 = {https://doi.org/10.5281/zenodo.7881981}}
 ```
+- tmQM:
+```bibtex
 @article{tmQM,
 	author = {Balcells, David and Skjelstad, Bastian Bjerkem},
 	journal = {Journal of Chemical Information and Modeling},
@@ -74,7 +87,7 @@ If you use this repository, please cite the original papers for the relevant dat
 }
 ```
 - 3D Tetris:
-```
+```bibtex
 @phdthesis{
     author={Smidt, Tess E.},
     year={2018},
