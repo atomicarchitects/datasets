@@ -57,18 +57,9 @@ python_files = ["test_*.py"]
 addopts = "-ra -q"
 
 [tool.setuptools.packages.find]
-where = ["atomic_datasets"]
-
-[build-system]
-requires = ["setuptools >= 65", "setuptools_scm[toml]>=6.2"]
-build-backend = 'setuptools.build_meta'
-
-[tool.setuptools_scm]
-search_parent_directories = true
-version_scheme = "no-guess-dev"
-local_scheme = "node-and-date"
-fallback_version = "0.0.0"
-
+where = ["."]
+include = ["atomic_datasets/*"]
+exclude = ["tests*"]
 
 [tool.uv]
 cache-keys = [{file = "requirements.in"}]
