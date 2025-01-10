@@ -58,7 +58,7 @@ addopts = "-ra -q"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["atomic_datasets/*"]
+include = ["atomic_datasets*"]
 exclude = ["tests*"]
 
 [tool.uv]
