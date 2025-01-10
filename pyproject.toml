@@ -69,9 +69,6 @@ version_scheme = "no-guess-dev"
 local_scheme = "node-and-date"
 fallback_version = "0.0.0"
 
-[tool.ruff]
-line-length = 120
-
 
 [tool.uv]
 cache-keys = [{file = "requirements.in"}]
