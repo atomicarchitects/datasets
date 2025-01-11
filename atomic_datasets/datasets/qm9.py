@@ -86,6 +86,7 @@ def load_qm9(
 
     properties_csv_path = os.path.join(root_dir, "gdb9.sdf.csv")
     properties = pd.read_csv(properties_csv_path)
+    properties.set_index("mol_id", inplace=True)
 
     for mol in tqdm.tqdm(supplier, desc="Loading QM9"):
         if mol is None:
@@ -96,7 +97,7 @@ def load_qm9(
             continue
 
         mol_id = mol.GetProp("_Name")
-        mol_properties = properties[properties["mol_id"] == mol_id].to_dict(orient="records")[0]
+        mol_properties = properties.loc[mol_id].to_dict()
 
         atomic_numbers = np.asarray([atom.GetAtomicNum() for atom in mol.GetAtoms()])
 
