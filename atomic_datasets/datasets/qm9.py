@@ -1,7 +1,6 @@
 from typing import Iterable, Dict
 
 import os
-import urllib
 
 import numpy as np
 import pandas as pd
@@ -21,6 +20,7 @@ class QM9Dataset(datatypes.MolecularDataset):
         self,
         root_dir: str,
         check_with_rdkit: bool = False,
+        remove_uncharacterized: bool = True,
     ):
         super().__init__()
 
@@ -29,6 +29,7 @@ class QM9Dataset(datatypes.MolecularDataset):
 
         self.root_dir = root_dir
         self.check_with_rdkit = check_with_rdkit
+        self.remove_uncharacterized = remove_uncharacterized
         self.all_graphs = None
         self.preprocessed = False
 
@@ -41,6 +42,10 @@ class QM9Dataset(datatypes.MolecularDataset):
 
         preprocess(self.root_dir)
         self.all_graphs = list(load_qm9(self.root_dir, self.check_with_rdkit))
+
+        if self.remove_uncharacterized:
+            included_idxs, _ = remove_uncharacterized_molecules(self.root_dir)
+            self.all_graphs = [self.all_graphs[i] for i in included_idxs]
 
     @utils.after_preprocess
     def __iter__(self) -> Iterable[datatypes.Graph]:
@@ -117,12 +122,10 @@ def load_qm9(
         )
 
 
-def get_qm9_splits(
+def remove_uncharacterized_molecules(
     root_dir: str,
-    edm_splits: bool,
-) -> Dict[str, np.ndarray]:
-    """Adapted from https://github.com/ehoogeboom/e3_diffusion_for_molecules/blob/main/qm9/data/prepare/qm9.py."""
-
+):
+    """Remove molecules from the QM9 dataset that are uncharacterized."""
     def is_int(string: str) -> bool:
         try:
             int(string)
@@ -133,7 +136,7 @@ def get_qm9_splits(
     print("Dropping uncharacterized molecules.")
     gdb9_url_excluded = "https://springernature.figshare.com/ndownloader/files/3195404"
     gdb9_txt_excluded = os.path.join(root_dir, "uncharacterized.txt")
-    urllib.request.urlretrieve(gdb9_url_excluded, filename=gdb9_txt_excluded)
+    gdb9_txt_excluded = utils.download_url(gdb9_url_excluded, root_dir)
 
     # First, get list of excluded indices.
     excluded_strings = []
@@ -151,18 +154,18 @@ def get_qm9_splits(
 
     # Now, create a list of included indices.
     Ngdb9 = 133885
-    Nexcluded = 3054
-
     included_idxs = np.array(sorted(list(set(range(Ngdb9)) - set(excluded_idxs))))
+    return included_idxs, excluded_idxs
+    
+def get_qm9_splits(
+    root_dir: str,
+    edm_splits: bool,
+) -> Dict[str, np.ndarray]:
+    """Adapted from https://github.com/ehoogeboom/e3_diffusion_for_molecules/blob/main/qm9/data/prepare/qm9.py."""
+    included_idxs, excluded_idxs = remove_uncharacterized_molecules(root_dir)
 
     # Now, generate random permutations to assign molecules to training/valation/test sets.
-    Nmols = Ngdb9 - Nexcluded
-    assert Nmols == len(
-        included_idxs
-    ), "Number of included molecules should be equal to Ngdb9 - Nexcluded. Found {} {}".format(
-        Nmols, len(included_idxs)
-    )
-
+    Nmols = len(included_idxs)
     Ntrain = 100000
     Ntest = int(0.1 * Nmols)
     Nval = Nmols - (Ntrain + Ntest)
