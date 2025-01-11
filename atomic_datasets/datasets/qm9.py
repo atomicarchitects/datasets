@@ -98,6 +98,7 @@ def load_qm9(
 
         mol_id = mol.GetProp("_Name")
         mol_properties = properties.loc[mol_id].to_dict()
+        mol_properties["mol_id"] = mol_id
 
         atomic_numbers = np.asarray([atom.GetAtomicNum() for atom in mol.GetAtoms()])
 
