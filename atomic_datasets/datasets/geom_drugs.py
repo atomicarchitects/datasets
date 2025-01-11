@@ -49,6 +49,11 @@ class GEOMDrugsDataset(datatypes.MolecularDataset):
 
 def preprocess(root_dir: str):
     """Preprocess the files for the GEOM (Drugs) dataset."""
+    conformation_file = os.path.join(root_dir, "GEOM_drugs_30.npy")
+    if os.path.exists(conformation_file):
+        print(f"Using downloaded data: {conformation_file}")
+        return
+
     if not os.path.exists(root_dir):
         os.makedirs(root_dir)
 

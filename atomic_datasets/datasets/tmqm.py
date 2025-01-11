@@ -55,26 +55,27 @@ def preprocess(root_dir: str):
         os.makedirs(root_dir)
 
     xyzs_path = os.path.join(root_dir, "xyz")
-    if os.path.exists(xyzs_path):
+    if os.path.exists(xyzs_path) and len(os.listdir(xyzs_path)) > 0:
         print(f"Using downloaded data: {xyzs_path}")
-    else:
-        print(f"Cloning tmQM repository to {root_dir}")
-        _ = utils.clone_url(TMQM_URL, root_dir)
-        os.makedirs(xyzs_path)
+        return
 
-        for i in range(1, 3):
-            gz_path = os.path.join(root_dir, "tmqm/tmQM", f"tmQM_X{i}.xyz.gz")
+    print(f"Cloning tmQM repository to {root_dir}")
+    _ = utils.clone_url(TMQM_URL, root_dir)
+    os.makedirs(xyzs_path)
 
-            mol_file = utils.extract_gz(gz_path)
-            with open(mol_file, "r") as f:
-                all_xyzs = f.read().split("\n\n")
-                for xyz_n, xyz in enumerate(all_xyzs):
-                    if xyz == "":
-                        continue
-                    xyz_lines = xyz.split("\n")
-                    assert len(xyz_lines) == int(xyz_lines[0]) + 2
-                    with open(os.path.join(xyzs_path, f"X{i}_{xyz_n}.xyz"), "w") as f:
-                        f.write(xyz)
+    for i in range(1, 3):
+        gz_path = os.path.join(root_dir, "tmqm/tmQM", f"tmQM_X{i}.xyz.gz")
+
+        mol_file = utils.extract_gz(gz_path)
+        with open(mol_file, "r") as f:
+            all_xyzs = f.read().split("\n\n")
+            for xyz_n, xyz in enumerate(all_xyzs):
+                if xyz == "":
+                    continue
+                xyz_lines = xyz.split("\n")
+                assert len(xyz_lines) == int(xyz_lines[0]) + 2
+                with open(os.path.join(xyzs_path, f"X{i}_{xyz_n}.xyz"), "w") as f:
+                    f.write(xyz)
 
 
 def load_tmQM(root_dir: str) -> Iterable[datatypes.Graph]:

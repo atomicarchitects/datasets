@@ -57,6 +57,11 @@ class QM9Dataset(datatypes.MolecularDataset):
 
 def preprocess(root_dir: str):
     """Preprocess the files for the QM9 dataset."""
+    raw_mols_path = os.path.join(root_dir, "gdb9.sdf")
+    if os.path.exists(raw_mols_path):
+        print(f"Using downloaded data: {raw_mols_path}")
+        return
+
     if not os.path.exists(root_dir):
         os.makedirs(root_dir)
 
