@@ -28,7 +28,18 @@ class MolecularDataset(abc.ABC):
         """Returns the species for the atomic numbers."""
         all_atomic_numbers = cls.get_atomic_numbers()
         return np.searchsorted(all_atomic_numbers, atomic_numbers)
+    
     @abc.abstractmethod
     def __iter__(self) -> Iterable[Graph]:
         """Return an iterator over the dataset."""
+        pass
+
+    @abc.abstractmethod
+    def __len__(self) -> int:
+        """Return the number of graphs in the dataset."""
+        pass
+
+    @abc.abstractmethod
+    def __getitem__(self, idx: int) -> Graph:
+        """Return the graph at the specified index."""
         pass

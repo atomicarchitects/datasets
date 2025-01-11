@@ -20,21 +20,30 @@ class GEOMDrugsDataset(datatypes.MolecularDataset):
         super().__init__()
         self.root_dir = root_dir
         self.preprocessed = False
+        self.all_graphs = None
 
     @staticmethod
     def get_atomic_numbers() -> np.ndarray:
         return np.asarray([1, 5, 6, 7, 8, 9, 13, 14, 15, 16, 17, 33, 35, 53, 80, 83])
 
     def preprocess(self):
-        preprocess(self.root_dir)
         self.preprocessed = True
 
-    def __iter__(self) -> Iterable[datatypes.Graph]:
-        if not self.preprocessed:
-            self.preprocess()
+        preprocess(self.root_dir)
+        self.all_graphs = list(load_GEOM_drugs(self.root_dir))
 
-        while True:
-            yield from load_GEOM_drugs(self.root_dir)
+    @utils.after_preprocess
+    def __iter__(self) -> Iterable[datatypes.Graph]:
+        for graph in self.all_graphs:
+            yield graph
+    
+    @utils.after_preprocess
+    def __len__(self) -> int:
+        return len(self.all_graphs)
+
+    @utils.after_preprocess
+    def __getitem__(self, idx: int) -> datatypes.Graph:
+        return self.all_graphs[idx]
 
 
 def preprocess(root_dir: str):
@@ -45,7 +54,7 @@ def preprocess(root_dir: str):
     print(f"Downloading GEOM (Drugs) dataset to {root_dir}")
     path = utils.download_url(GEOM_DRUGS_URL, root_dir)
     path = utils.extract_gz(path)
-    path = utils.extract_tar(path)
+    path = utils.extract_tar(path, root_dir)
     print("Download complete.")
 
 

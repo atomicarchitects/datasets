@@ -13,6 +13,7 @@ class TetrisDataset(datatypes.MolecularDataset):
         self,
     ):
         super().__init__()
+        self.all_graphs = list(load_tetris())
 
     @staticmethod
     def get_atomic_numbers() -> np.ndarray:
@@ -20,9 +21,14 @@ class TetrisDataset(datatypes.MolecularDataset):
 
     def __iter__(self) -> Iterable[datatypes.Graph]:
         """Returns the graphs for the Tetris pieces."""
-        while True:
-            yield from load_tetris()
+        for graph in self.all_graphs:
+            yield graph
 
+    def __len__(self) -> int:
+        return len(self.all_graphs)
+    
+    def __getitem__(self, idx: int) -> datatypes.Graph:
+        return self.all_graphs[idx]
 
 def load_tetris() -> Iterable[datatypes.Graph]:
     """3D tetris pieces as taken from https://docs.e3nn.org/en/stable/examples/tetris_gate.html."""

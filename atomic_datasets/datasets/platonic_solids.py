@@ -32,15 +32,22 @@ class PlatonicSolidsDataset(datatypes.MolecularDataset):
         self,
     ):
         super().__init__()
+        self.all_graphs = list(load_platonic_solids())
 
     @staticmethod
     def get_atomic_numbers() -> np.ndarray:
         return np.asarray([1])
 
     def __iter__(self) -> Iterable[datatypes.Graph]:
-        """Returns the structures for the Platonic solids."""
-        while True:
-            yield from load_platonic_solids()
+        for graph in self.all_graphs:
+            yield graph
+    
+    def __len__(self) -> int:
+        return len(self.all_graphs)
+    
+    def __getitem__(self, idx: int) -> datatypes.Graph:
+        return self.all_graphs[idx]
+
 
 
 def load_platonic_solids():

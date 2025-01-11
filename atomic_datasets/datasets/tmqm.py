@@ -23,22 +23,31 @@ class tmQMDataset(datatypes.MolecularDataset):
             
         self.root_dir = root_dir
         self.preprocessed = False
+        self.all_graphs = None
 
     @staticmethod
     def get_atomic_numbers() -> np.ndarray:
         return np.arange(1, 81)
 
     def preprocess(self):
-        preprocess(self.root_dir)
         self.preprocessed = True
 
+        preprocess(self.root_dir)
+        self.all_graphs = list(load_tmQM(self.root_dir))
+
+    @utils.after_preprocess
     def __iter__(self) -> Iterable[datatypes.Graph]:
-        if not self.preprocessed:
-            self.preprocess()
+        for graph in self.all_graphs:
+            yield graph
 
-        while True:
-            yield from load_tmQM(self.root_dir)
-
+    @utils.after_preprocess
+    def __len__(self) -> int:
+        return len(self.all_graphs)
+    
+    @utils.after_preprocess
+    def __getitem__(self, idx: int) -> datatypes.Graph:
+        return self.all_graphs[idx]
+    
 
 def preprocess(root_dir: str):
     """Preprocess the files for the tmQM dataset."""

@@ -20,7 +20,7 @@ class QM9Dataset(datatypes.MolecularDataset):
     def __init__(
         self,
         root_dir: str,
-        check_with_rdkit: bool,
+        check_with_rdkit: bool = False,
     ):
         super().__init__()
 
@@ -29,6 +29,7 @@ class QM9Dataset(datatypes.MolecularDataset):
 
         self.root_dir = root_dir
         self.check_with_rdkit = check_with_rdkit
+        self.all_graphs = None
         self.preprocessed = False
 
     @staticmethod
@@ -36,16 +37,23 @@ class QM9Dataset(datatypes.MolecularDataset):
         return np.asarray([1, 6, 7, 8, 9])
 
     def preprocess(self):
-        preprocess(self.root_dir)
         self.preprocessed = True
 
+        preprocess(self.root_dir)
+        self.all_graphs = list(load_qm9(self.root_dir, self.check_with_rdkit))
+
+    @utils.after_preprocess
     def __iter__(self) -> Iterable[datatypes.Graph]:
-        if not self.preprocessed:
-            self.preprocess()
+        for graph in self.all_graphs:
+            yield graph
 
-        while True:
-            yield from load_qm9(self.root_dir, self.check_with_rdkit)
+    @utils.after_preprocess
+    def __len__(self) -> int:
+        return len(self.all_graphs)
 
+    @utils.after_preprocess
+    def __getitem__(self, idx: int) -> datatypes.Graph:
+        return self.all_graphs[idx]
 
 def preprocess(root_dir: str):
     """Preprocess the files for the QM9 dataset."""
@@ -60,6 +68,7 @@ def preprocess(root_dir: str):
     readme = os.path.join(root_dir, "QM9_README")
     with open(readme) as f:
         print("Dataset description:", f.read())
+
 
 def load_qm9(
     root_dir: str,
