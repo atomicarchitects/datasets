@@ -80,7 +80,7 @@ def preprocess(root_dir: str):
 def load_tmQM(root_dir: str) -> Iterable[datatypes.Graph]:
     """Load the tmQM dataset."""
     xyzs_path = os.path.join(root_dir, "xyz")
-    for mol_file in tqdm.tqdm(sorted(os.listdir(xyzs_path))):
+    for mol_file in tqdm.tqdm(sorted(os.listdir(xyzs_path)), desc="Loading tmQM"):
         mol_file = os.path.join(xyzs_path, mol_file)
         mol_as_ase = ase.io.read(mol_file, format="xyz")
         if mol_as_ase is None:

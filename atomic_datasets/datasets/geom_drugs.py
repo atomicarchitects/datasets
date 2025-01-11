@@ -2,6 +2,7 @@ from typing import Dict, Iterable
 import os
 
 import numpy as np
+import tqdm
 
 from atomic_datasets import datatypes
 from atomic_datasets import utils
@@ -69,7 +70,7 @@ def load_GEOM_drugs(root_dir: str) -> Iterable[datatypes.Graph]:
     split_indices = np.nonzero(mol_id[:-1] - mol_id[1:])[0] + 1
     data_list = np.split(conformers, split_indices)
 
-    for datum in data_list:
+    for datum in tqdm.tqdm(data_list, desc="Loading GEOM (Drugs)"):
         atom_types = datum[:, 0].astype(int)
         atom_positions = datum[:, 1:].astype(float)
         species = GEOMDrugsDataset.atomic_numbers_to_species(atom_types)

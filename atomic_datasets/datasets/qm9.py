@@ -3,10 +3,10 @@ from typing import Iterable, Dict
 import os
 import urllib
 
-import logging
 import numpy as np
 import pandas as pd
 import rdkit.Chem as Chem
+import tqdm
 
 from atomic_datasets import utils
 from atomic_datasets import datatypes
@@ -82,7 +82,7 @@ def load_qm9(
     properties_csv_path = os.path.join(root_dir, "gdb9.sdf.csv")
     properties = pd.read_csv(properties_csv_path)
 
-    for mol in supplier:
+    for mol in tqdm.tqdm(supplier, desc="Loading QM9"):
         if mol is None:
             raise ValueError("Failed to load molecule.")
 
@@ -123,7 +123,7 @@ def get_qm9_splits(
         except:
             return False
 
-    logging.info("Dropping uncharacterized molecules.")
+    print("Dropping uncharacterized molecules.")
     gdb9_url_excluded = "https://springernature.figshare.com/ndownloader/files/3195404"
     gdb9_txt_excluded = os.path.join(root_dir, "uncharacterized.txt")
     urllib.request.urlretrieve(gdb9_url_excluded, filename=gdb9_txt_excluded)
