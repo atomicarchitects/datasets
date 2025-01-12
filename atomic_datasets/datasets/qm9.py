@@ -1,4 +1,4 @@
-from typing import Iterable, Dict
+from typing import Iterable, Dict, Optional
 
 import os
 
@@ -20,7 +20,8 @@ class QM9Dataset(datatypes.MolecularDataset):
         self,
         root_dir: str,
         check_with_rdkit: bool = False,
-        remove_uncharacterized: bool = True,
+        remove_uncharacterized_molecules: bool = True,
+        max_num_molecules: int = None,
     ):
         super().__init__()
 
@@ -29,7 +30,8 @@ class QM9Dataset(datatypes.MolecularDataset):
 
         self.root_dir = root_dir
         self.check_with_rdkit = check_with_rdkit
-        self.remove_uncharacterized = remove_uncharacterized
+        self.remove_uncharacterized_molecules = remove_uncharacterized_molecules
+        self.max_num_molecules = max_num_molecules
         self.all_graphs = None
         self.preprocessed = False
 
@@ -41,11 +43,11 @@ class QM9Dataset(datatypes.MolecularDataset):
         self.preprocessed = True
 
         preprocess(self.root_dir)
-        self.all_graphs = list(load_qm9(self.root_dir, self.check_with_rdkit))
+        self.all_graphs = list(load_qm9(self.root_dir, self.check_with_rdkit, self.max_num_molecules))
 
-        if self.remove_uncharacterized:
+        if self.remove_uncharacterized_molecules:
             included_idxs, _ = remove_uncharacterized_molecules(self.root_dir)
-            self.all_graphs = [self.all_graphs[i] for i in included_idxs]
+            self.all_graphs = [self.all_graphs[i] for i in included_idxs if i < len(self.all_graphs)]
 
     @utils.after_preprocess
     def __iter__(self) -> Iterable[datatypes.Graph]:
@@ -83,6 +85,7 @@ def preprocess(root_dir: str):
 def load_qm9(
     root_dir: str,
     check_with_rdkit: bool = True,
+    max_num_molecules: Optional[int] = None,
 ) -> Iterable[datatypes.Graph]:
     """Load the QM9 dataset."""
 
@@ -93,7 +96,10 @@ def load_qm9(
     properties = pd.read_csv(properties_csv_path)
     properties.set_index("mol_id", inplace=True)
 
-    for mol in tqdm.tqdm(supplier, desc="Loading QM9"):
+    for index, mol in enumerate(tqdm.tqdm(supplier, desc="Loading QM9")):
+        if max_num_molecules is not None and index >= max_num_molecules:
+            break
+
         if mol is None:
             raise ValueError("Failed to load molecule.")
 
@@ -148,9 +154,7 @@ def remove_uncharacterized_molecules(
 
     assert (
         len(excluded_idxs) == 3054
-    ), "There should be exactly 3054 excluded atoms. Found {}".format(
-        len(excluded_idxs)
-    )
+    ), f"There should be exactly 3054 excluded molecule. Found {len(excluded_idxs)}"
 
     # Now, create a list of included indices.
     Ngdb9 = 133885
