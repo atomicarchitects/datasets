@@ -29,7 +29,7 @@ class ProteinDataset(datasets.InMemoryDataset):
         train_on_single_molecule: bool = False,
         train_on_single_molecule_index: int = 0,
         alpha_carbons_only: bool = False,
-        rng_seed: int = 6489,  # consistent w foldingdiff
+        rng_seed: int = 6489,  # Taken from FoldingDiff: https://github.com/microsoft/foldingdiff
     ):
         super().__init__()
 
