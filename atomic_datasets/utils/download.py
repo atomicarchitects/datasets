@@ -8,6 +8,7 @@ import git
 import zipfile
 import tarfile
 import urllib
+import urllib.request
 
 
 def clone_url(url: str, root: str) -> str:
