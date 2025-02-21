@@ -21,7 +21,8 @@ class QM9Dataset(datatypes.MolecularDataset):
         root_dir: str,
         check_with_rdkit: bool = False,
         remove_uncharacterized_molecules: bool = True,
-        max_num_molecules: int = None,
+        start_index: Optional[int] = None,
+        end_index: Optional[int] = None,
     ):
         super().__init__()
 
@@ -31,7 +32,8 @@ class QM9Dataset(datatypes.MolecularDataset):
         self.root_dir = root_dir
         self.check_with_rdkit = check_with_rdkit
         self.remove_uncharacterized_molecules = remove_uncharacterized_molecules
-        self.max_num_molecules = max_num_molecules
+        self.start_index = start_index
+        self.end_index = end_index
         self.all_graphs = None
         self.preprocessed = False
 
@@ -47,8 +49,7 @@ class QM9Dataset(datatypes.MolecularDataset):
         with open(README) as f:
             print("Dataset description:", f.read())
 
-        self.all_graphs = list(load_qm9(self.root_dir, self.check_with_rdkit, self.max_num_molecules))
-
+        self.all_graphs = list(load_qm9(self.root_dir, self.check_with_rdkit, self.start_index, self.end_index))
         if self.remove_uncharacterized_molecules:
             included_idxs, _ = remove_uncharacterized_molecules(self.root_dir)
             self.all_graphs = [self.all_graphs[i] for i in included_idxs if i < len(self.all_graphs)]
@@ -84,7 +85,8 @@ def preprocess_directory(root_dir: str):
 def load_qm9(
     root_dir: str,
     check_with_rdkit: bool = True,
-    max_num_molecules: Optional[int] = None,
+    start_index: Optional[int] = None,
+    end_index: Optional[int] = None,
 ) -> Iterable[datatypes.Graph]:
     """Load the QM9 dataset."""
 
@@ -96,7 +98,10 @@ def load_qm9(
     properties.set_index("mol_id", inplace=True)
 
     for index, mol in enumerate(tqdm.tqdm(supplier, desc="Loading QM9")):
-        if max_num_molecules is not None and index >= max_num_molecules:
+        if start_index is not None and index < start_index:
+            continue
+
+        if end_index is not None and index >= end_index:
             break
 
         if mol is None:
