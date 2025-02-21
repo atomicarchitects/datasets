@@ -42,7 +42,11 @@ class QM9Dataset(datatypes.MolecularDataset):
     def preprocess(self):
         self.preprocessed = True
 
-        preprocess(self.root_dir)
+        preprocess_directory(self.root_dir)
+        README = os.path.join(self.root_dir, "QM9_README")
+        with open(README) as f:
+            print("Dataset description:", f.read())
+
         self.all_graphs = list(load_qm9(self.root_dir, self.check_with_rdkit, self.max_num_molecules))
 
         if self.remove_uncharacterized_molecules:
@@ -62,7 +66,7 @@ class QM9Dataset(datatypes.MolecularDataset):
     def __getitem__(self, idx: int) -> datatypes.Graph:
         return self.all_graphs[idx]
 
-def preprocess(root_dir: str):
+def preprocess_directory(root_dir: str):
     """Preprocess the files for the QM9 dataset."""
     raw_mols_path = os.path.join(root_dir, "gdb9.sdf")
     if os.path.exists(raw_mols_path):
@@ -76,11 +80,6 @@ def preprocess(root_dir: str):
     path = utils.download_url(QM9_URL, root_dir)
     utils.extract_zip(path, root_dir)
     print("Download complete.")
-
-    readme = os.path.join(root_dir, "QM9_README")
-    with open(readme) as f:
-        print("Dataset description:", f.read())
-
 
 def load_qm9(
     root_dir: str,
