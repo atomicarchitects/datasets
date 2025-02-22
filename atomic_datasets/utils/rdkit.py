@@ -1,12 +1,12 @@
 
 from rdkit import Chem
 
-def atom_number_to_symbol(atomic_number: int) -> str:
+def atomic_number_to_symbol(atomic_number: int) -> str:
     """Convert atomic number to atomic symbol."""
     ptable = Chem.GetPeriodicTable()
     return ptable.GetElementSymbol(atomic_number)
 
-def atom_symbol_to_number(atomic_symbol: str) -> int:
+def atomic_symbol_to_number(atomic_symbol: str) -> int:
     """Convert atomic symbol to atomic number."""
     ptable = Chem.GetPeriodicTable()
     return ptable.GetAtomicNumber(atomic_symbol)
