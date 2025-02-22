@@ -3,11 +3,13 @@ from rdkit import Chem
 
 def atom_number_to_symbol(atomic_number: int) -> str:
     """Convert atomic number to atomic symbol."""
-    return Chem.PeriodicTable.GetElementSymbol(atomic_number)
+    ptable = Chem.GetPeriodicTable()
+    return ptable.GetElementSymbol(atomic_number)
 
 def atom_symbol_to_number(atomic_symbol: str) -> int:
     """Convert atomic symbol to atomic number."""
-    return Chem.PeriodicTable.GetAtomicNumber(atomic_symbol)
+    ptable = Chem.GetPeriodicTable()
+    return ptable.GetAtomicNumber(atomic_symbol)
 
 def is_molecule_sane(mol: Chem.Mol) -> bool:
     """Check that the molecule passes some basic sanity checks from Posebusters.
