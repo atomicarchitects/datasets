@@ -124,7 +124,7 @@ def load_platonic_solids():
         ],  # dodacahedron
     ]
     for solid in solids:
-        solid = to_graph(np.asarray(solid))
+        solid = to_graph(np.asarray(solid, dtype=np.float32))
         
         # Normalize the solid edges, so that the smallest inter-node distance is 1.
         scale_factor = compute_minimum_distance_to_first_node(solid["nodes"]["positions"])
