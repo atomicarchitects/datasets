@@ -6,7 +6,7 @@ from atomic_datasets import datatypes
 from atomic_datasets.datasets.platonic_solids import to_graph
 
 
-class TetrisDataset(datatypes.MolecularDataset):
+class Tetris(datatypes.MolecularDataset):
     """Dataset of 3D Tetris shapes."""
 
     def __init__(

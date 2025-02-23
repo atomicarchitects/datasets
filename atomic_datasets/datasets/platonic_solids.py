@@ -25,7 +25,7 @@ def to_graph(solid: np.ndarray) -> datatypes.Graph:
     )
 
 
-class PlatonicSolidsDataset(datatypes.MolecularDataset):
+class PlatonicSolids(datatypes.MolecularDataset):
     """Dataset of platonic solids."""
 
     def __init__(

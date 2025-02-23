@@ -14,7 +14,7 @@ from atomic_datasets import datatypes
 QM9_URL = r"https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/molnet_publish/qm9.zip"
 
 
-class QM9Dataset(datatypes.MolecularDataset):
+class QM9(datatypes.MolecularDataset):
     """QM9 dataset."""
 
     def __init__(
@@ -138,7 +138,7 @@ def load_qm9(
         yield datatypes.Graph(
             nodes=dict(
                 positions=np.asarray(mol.GetConformer().GetPositions()),
-                species=QM9Dataset.atomic_numbers_to_species(atomic_numbers)
+                species=QM9.atomic_numbers_to_species(atomic_numbers)
             ),
             edges=None,
             receivers=None,

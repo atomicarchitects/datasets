@@ -12,7 +12,7 @@ from atomic_datasets import datatypes
 TMQM_URL = r"https://github.com/bbskjelstad/tmqm.git"
 
 
-class tmQMDataset(datatypes.MolecularDataset):
+class tmQM(datatypes.MolecularDataset):
     """TMQM dataset."""
 
     def __init__(self, root_dir: str):

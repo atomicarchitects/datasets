@@ -1,23 +1,23 @@
 from typing import List, Iterable, Dict
 
-from absl import logging
 import os
-import numpy as np
-import ase
-import biotite.structure as struc
-import biotite.structure.io.pdb as pdb
+import logging
 import warnings
 
-from symphony.data import datasets
-from symphony import datatypes
+import numpy as np
+import biotite.structure as struc
+import biotite.structure.io.pdb as pdb
+
+from atomic_datasets import datatypes
+from atomic_datasets import utils
 
 
 CATH_URL = "http://download.cathdb.info/cath/releases/all-releases/v4_3_0/non-redundant-data-sets/cath-dataset-nonredundant-S20-v4_3_0.pdb.tgz"
 MINIPROTEIN_URL = "https://files.ipd.uw.edu/pub/robust_de_novo_design_minibinders_2021/supplemental_files/scaffolds.tar.gz"
 
 
-class ProteinDataset(datasets.InMemoryDataset):
-    """CATH/Miniprotein datasets."""
+class CATH(datatypes.MolecularDataset):
+    """CATH/Miniprotein protein structure datasets."""
 
     def __init__(
         self,
@@ -75,7 +75,7 @@ class ProteinDataset(datasets.InMemoryDataset):
     def atoms_to_species(alpha_carbons_only: bool) -> Dict[str, int]:
         if alpha_carbons_only: return {"CA": 0}
         mapping = {}
-        amino_acid_abbr = ProteinDataset.get_amino_acids()
+        amino_acid_abbr = CATH.get_amino_acids()
         for i, aa in enumerate(amino_acid_abbr):
             mapping[aa] = i
         mapping["C"] = 22
@@ -85,7 +85,7 @@ class ProteinDataset(datasets.InMemoryDataset):
         return mapping
 
     def num_species(self) -> int:
-        return len(ProteinDataset.get_atomic_numbers(self.alpha_carbons_only))
+        return len(CATH.get_atomic_numbers(self.alpha_carbons_only))
 
     @staticmethod
     def get_amino_acids() -> List[str]:
@@ -117,7 +117,7 @@ class ProteinDataset(datasets.InMemoryDataset):
     @staticmethod
     def get_species(alpha_carbons_only) -> List[str]:
         if alpha_carbons_only: return ["CA"]
-        return ProteinDataset.get_amino_acids() + ["C", "CA", "N"]
+        return CATH.get_amino_acids() + ["C", "CA", "N"]
 
     def structures(self) -> Iterable[datatypes.Structures]:
         if self.all_structures is None:
@@ -177,16 +177,16 @@ def load_data(
         mols_path = os.path.join(root_dir, "dompdb")
         if not os.path.isdir(mols_path):
             logging.info("Downloading cath dataset...")
-            path = datasets.utils.download_url(CATH_URL, root_dir)
-            datasets.utils.extract_tar(path, root_dir)
+            path = utils.download_url(CATH_URL, root_dir)
+            utils.extract_tar(path, root_dir)
         mol_files_list = os.listdir(mols_path)
     elif dataset == "miniprotein":
         mols_path = os.path.join(root_dir, "supplemental_files", "scaffolds")
         scaffolds_path = os.path.join(mols_path, "recommended_scaffolds.list")
         if not os.path.isfile(scaffolds_path):
             logging.info("Downloading miniprotein dataset...")
-            path = datasets.utils.download_url(MINIPROTEIN_URL, root_dir)
-            datasets.utils.extract_tar(path, root_dir)
+            path = utils.download_url(MINIPROTEIN_URL, root_dir)
+            utils.extract_tar(path, root_dir)
         with open(scaffolds_path, "r") as scaffolds_file:
             mol_files_list = scaffolds_file.readlines()
     else:
@@ -251,7 +251,7 @@ def load_data(
                     cb_atoms = np.argwhere(fragment.atom_name == "CB").flatten()
                     elements[cb_atoms] = fragment.res_name[cb_atoms]
                 species = np.vectorize(
-                    ProteinDataset.atoms_to_species(alpha_carbons_only).get
+                    CATH.atoms_to_species(alpha_carbons_only).get
                 )(elements)
                 residue_starts = struc.get_residue_starts(fragment)
                 _add_structure(positions, species, mol_file, residue_starts)

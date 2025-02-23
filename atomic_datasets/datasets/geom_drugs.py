@@ -11,7 +11,7 @@ from atomic_datasets import utils
 GEOM_DRUGS_URL = r"https://zenodo.org/records/7881981/files/EDM.tar.gz"
 
 
-class GEOMDrugsDataset(datatypes.MolecularDataset):
+class GEOMDrugs(datatypes.MolecularDataset):
     """GEOM (Drugs) dataset."""
 
     def __init__(
@@ -78,7 +78,7 @@ def load_GEOM_drugs(root_dir: str) -> Iterable[datatypes.Graph]:
     for datum in tqdm.tqdm(data_list, desc="Loading GEOM (Drugs)"):
         atom_types = datum[:, 0].astype(int)
         atom_positions = datum[:, 1:].astype(float)
-        species = GEOMDrugsDataset.atomic_numbers_to_species(atom_types)
+        species = GEOMDrugs.atomic_numbers_to_species(atom_types)
 
         yield datatypes.Graph(
             nodes=dict(positions=atom_positions, species=species),
