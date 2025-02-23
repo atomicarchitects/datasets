@@ -53,6 +53,7 @@ class QM9Dataset(datatypes.MolecularDataset):
         self.preprocessed = True
 
         preprocess_directory(self.root_dir)
+
         README = os.path.join(self.root_dir, "QM9_README")
         with open(README) as f:
             print("Dataset description:", f.read())
@@ -162,7 +163,6 @@ def remove_uncharacterized_molecules(
 
     print("Dropping uncharacterized molecules.")
     gdb9_url_excluded = "https://springernature.figshare.com/ndownloader/files/3195404"
-    gdb9_txt_excluded = os.path.join(root_dir, "uncharacterized.txt")
     gdb9_txt_excluded = utils.download_url(gdb9_url_excluded, root_dir)
 
     # First, get list of excluded indices.

@@ -30,9 +30,17 @@ class PlatonicSolidsDataset(datatypes.MolecularDataset):
 
     def __init__(
         self,
+        start_index: int = None,
+        end_index: int = None,
     ):
         super().__init__()
         self.all_graphs = list(load_platonic_solids())
+
+        if start_index is not None:
+            self.all_graphs = self.all_graphs[start_index:]
+        
+        if end_index is not None:
+            self.all_graphs = self.all_graphs[:end_index]
 
     @staticmethod
     def get_atomic_numbers() -> np.ndarray:
