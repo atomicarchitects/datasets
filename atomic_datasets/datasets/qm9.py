@@ -1,6 +1,7 @@
 from typing import Iterable, Dict, Optional
 
 import os
+import logging
 
 import numpy as np
 import pandas as pd
@@ -19,8 +20,8 @@ class QM9Dataset(datatypes.MolecularDataset):
     def __init__(
         self,
         root_dir: str,
+        split: Optional[str] = None,
         check_with_rdkit: bool = False,
-        remove_uncharacterized_molecules: bool = True,
         start_index: Optional[int] = None,
         end_index: Optional[int] = None,
     ):
@@ -30,12 +31,19 @@ class QM9Dataset(datatypes.MolecularDataset):
             raise ValueError("root_dir must be provided.")
 
         self.root_dir = root_dir
+        self.split = split
         self.check_with_rdkit = check_with_rdkit
-        self.remove_uncharacterized_molecules = remove_uncharacterized_molecules
         self.start_index = start_index
         self.end_index = end_index
         self.all_graphs = None
         self.preprocessed = False
+
+        if self.split is not None:
+            if self.check_with_rdkit:
+                raise ValueError("Splits determined by EDM are not compatible with checking with RDKit.")
+
+            if self.start_index is not None or self.end_index is not None:
+                logging.warning("When split is not None, start_index and end_index refer to the indices of the EDM splits.")
 
     @staticmethod
     def get_atomic_numbers() -> np.ndarray:
@@ -49,10 +57,19 @@ class QM9Dataset(datatypes.MolecularDataset):
         with open(README) as f:
             print("Dataset description:", f.read())
 
-        self.all_graphs = list(load_qm9(self.root_dir, self.check_with_rdkit, self.start_index, self.end_index))
-        if self.remove_uncharacterized_molecules:
-            included_idxs, _ = remove_uncharacterized_molecules(self.root_dir)
-            self.all_graphs = [self.all_graphs[i] for i in included_idxs if i < len(self.all_graphs)]
+        if self.split is None:
+            self.all_graphs = list(load_qm9(self.root_dir, self.check_with_rdkit, self.start_index, self.end_index))
+            return
+
+        self.all_graphs = list(load_qm9(self.root_dir, self.check_with_rdkit))
+        splits = get_EDM_splits(self.root_dir)
+        split = splits[self.split]
+        if self.start_index is not None:
+            split = split[self.start_index:]
+        if self.end_index is not None:
+            split = split[:self.end_index]
+        self.all_graphs = [self.all_graphs[i] for i in split]
+
 
     @utils.after_preprocess
     def __iter__(self) -> Iterable[datatypes.Graph]:
@@ -160,14 +177,19 @@ def remove_uncharacterized_molecules(
         len(excluded_idxs) == 3054
     ), f"There should be exactly 3054 excluded molecule. Found {len(excluded_idxs)}"
 
+    # Cleanup file.
+    try:
+        os.remove(gdb9_txt_excluded)
+    except OSError:
+        pass
+
     # Now, create a list of included indices.
     Ngdb9 = 133885
     included_idxs = np.array(sorted(list(set(range(Ngdb9)) - set(excluded_idxs))))
     return included_idxs, excluded_idxs
     
-def get_qm9_splits(
+def get_EDM_splits(
     root_dir: str,
-    edm_splits: bool,
 ) -> Dict[str, np.ndarray]:
     """Adapted from https://github.com/ehoogeboom/e3_diffusion_for_molecules/blob/main/qm9/data/prepare/qm9.py."""
     included_idxs, excluded_idxs = remove_uncharacterized_molecules(root_dir)
@@ -180,10 +202,7 @@ def get_qm9_splits(
 
     # Generate random permutation.
     np.random.seed(0)
-    if edm_splits:
-        data_permutation = np.random.permutation(Nmols)
-    else:
-        data_permutation = np.arange(Nmols)
+    data_permutation = np.random.permutation(Nmols)
 
     train, val, test, extra = np.split(
         data_permutation, [Ntrain, Ntrain + Nval, Ntrain + Nval + Ntest]
@@ -198,11 +217,4 @@ def get_qm9_splits(
     test = included_idxs[test]
 
     splits = {"train": train, "val": val, "test": test}
-
-    # Cleanup file.
-    try:
-        os.remove(gdb9_txt_excluded)
-    except OSError:
-        pass
-
     return splits
