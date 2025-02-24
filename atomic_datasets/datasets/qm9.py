@@ -21,6 +21,7 @@ class QM9(datatypes.MolecularDataset):
         self,
         root_dir: str,
         split: Optional[str] = None,
+        use_EDM_splits: bool = False,
         check_with_rdkit: bool = False,
         start_index: Optional[int] = None,
         end_index: Optional[int] = None,
@@ -33,17 +34,21 @@ class QM9(datatypes.MolecularDataset):
         self.root_dir = root_dir
         self.split = split
         self.check_with_rdkit = check_with_rdkit
+        self.use_EDM_splits = use_EDM_splits
         self.start_index = start_index
         self.end_index = end_index
         self.all_graphs = None
         self.preprocessed = False
 
-        if self.split is not None:
+        if self.use_EDM_splits:
+            if self.split is None:
+                raise ValueError("When use_EDM_splits is True, split must be provided.")
+
             if self.check_with_rdkit:
                 raise ValueError("Splits determined by EDM are not compatible with checking with RDKit.")
 
             if self.start_index is not None or self.end_index is not None:
-                logging.warning("When split is not None, start_index and end_index refer to the indices of the EDM splits.")
+                logging.warning("When use_EDM_splits is True, start_index and end_index refer to the indices of the EDM splits.")
 
     @staticmethod
     def get_atomic_numbers() -> np.ndarray:
@@ -58,7 +63,7 @@ class QM9(datatypes.MolecularDataset):
         with open(README) as f:
             print("Dataset description:", f.read())
 
-        if self.split is None:
+        if not self.use_EDM_splits:
             self.all_graphs = list(load_qm9(self.root_dir, self.check_with_rdkit, self.start_index, self.end_index))
             return
 
@@ -85,7 +90,8 @@ class QM9(datatypes.MolecularDataset):
     def __getitem__(self, idx: int) -> datatypes.Graph:
         return self.all_graphs[idx]
 
-def preprocess_directory(root_dir: str):
+
+def preprocess_directory(root_dir: str) -> None:
     """Preprocess the files for the QM9 dataset."""
     raw_mols_path = os.path.join(root_dir, "gdb9.sdf")
     if os.path.exists(raw_mols_path):
@@ -99,6 +105,7 @@ def preprocess_directory(root_dir: str):
     path = utils.download_url(QM9_URL, root_dir)
     utils.extract_zip(path, root_dir)
     print("Download complete.")
+
 
 def load_qm9(
     root_dir: str,
