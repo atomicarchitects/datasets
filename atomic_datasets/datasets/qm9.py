@@ -215,9 +215,7 @@ def get_EDM_splits(
         data_permutation, [Ntrain, Ntrain + Nval, Ntrain + Nval + Ntest]
     )
 
-    assert len(extra) == 0, "Split was inexact {} {} {} {}".format(
-        len(train), len(val), len(test), len(extra)
-    )
+    assert len(extra) == 0, f"Split was inexact {len(train)} {len(val)} {len(test)} with {len(extra)} extra."
 
     train = included_idxs[train]
     val = included_idxs[val]
