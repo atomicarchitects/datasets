@@ -19,12 +19,14 @@ class GEOMDrugs(datatypes.MolecularDataset):
         self,
         root_dir: str,
         use_GCDM_splits: bool = False,
+        split: Optional[str] = None,
         start_index: Optional[int] = None,
         end_index: Optional[int] = None,
     ):
         super().__init__()
         self.root_dir = root_dir
         self.use_GCDM_splits = use_GCDM_splits
+        self.split = split
         self.start_index = start_index
         self.end_index = end_index
 
