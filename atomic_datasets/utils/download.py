@@ -30,10 +30,11 @@ def download_url(url: str, root: str) -> str:
     filename = url.rpartition("/")[2]
     file_path = os.path.join(root, filename)
 
+    if os.path.exists(file_path):
+        print(f"Using downloaded file: {file_path}")
+        return file_path
+
     try:
-        if os.path.exists(file_path):
-            print(f"Using downloaded file: {file_path}")
-            return file_path
         data = urllib.request.urlopen(url)
     except urllib.error.URLError:
         # No internet connection

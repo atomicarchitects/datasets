@@ -78,7 +78,7 @@ class GEOMDrugs(datatypes.MolecularDataset):
 
 def preprocess(root_dir: str):
     """Preprocess the files for the GEOM (Drugs) dataset."""
-    conformation_file = os.path.join(root_dir, "GEOM_drugs_30.npy")
+    conformation_file = os.path.join(root_dir, "data", "EDM", "GEOM", "GEOM_drugs_30.npy")
     if os.path.exists(conformation_file):
         print(f"Using downloaded data: {conformation_file}")
         return
@@ -96,7 +96,7 @@ def preprocess(root_dir: str):
 def load_GEOM_drugs(root_dir: str, start_index: Optional[int], end_index: Optional[int]) -> Iterable[datatypes.Graph]:
     """Adapted from https://github.com/BioinfoMachineLearning/bio-diffusion/blob/main/src/datamodules/components/edm/build_geom_dataset.py."""
 
-    conformation_file = os.path.join(root_dir, "GEOM_drugs_30.npy")
+    conformation_file = os.path.join(root_dir, "data", "EDM", "GEOM", "GEOM_drugs_30.npy")
     all_data = np.load(conformation_file)  # 2D array: num_atoms x 5
 
     mol_id = all_data[:, 0].astype(int)
@@ -129,7 +129,7 @@ def load_GEOM_drugs(root_dir: str, start_index: Optional[int], end_index: Option
 def get_GCDM_splits(root_dir: str) -> Dict[str, np.ndarray]:
     """Splits for GEOM (Drugs). Adapted from https://github.com/BioinfoMachineLearning/bio-diffusion/blob/main/src/datamodules/components/edm/build_geom_dataset.py."""
 
-    permutation_file = os.path.join(root_dir, "GEOM_permutation.npy")
+    permutation_file = os.path.join(root_dir, "data", "EDM", "GEOM", "GEOM_permutation.npy")
     permutation = np.load(permutation_file)
 
     num_mol = len(permutation)
