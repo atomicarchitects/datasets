@@ -21,7 +21,7 @@ class QM9(datatypes.MolecularDataset):
         self,
         root_dir: str,
         split: Optional[str] = None,
-        use_EDM_splits: bool = False,
+        use_Anderson_splits: bool = False,
         check_with_rdkit: bool = False,
         start_index: Optional[int] = None,
         end_index: Optional[int] = None,
@@ -34,21 +34,21 @@ class QM9(datatypes.MolecularDataset):
         self.root_dir = root_dir
         self.split = split
         self.check_with_rdkit = check_with_rdkit
-        self.use_EDM_splits = use_EDM_splits
+        self.use_Anderson_splits = use_Anderson_splits
         self.start_index = start_index
         self.end_index = end_index
         self.all_graphs = None
         self.preprocessed = False
 
-        if self.use_EDM_splits:
+        if self.use_Anderson_splits:
             if self.split is None:
-                raise ValueError("When use_EDM_splits is True, split must be provided.")
+                raise ValueError("When use_Anderson_splits is True, split must be provided.")
 
             if self.check_with_rdkit:
-                raise ValueError("Splits determined by EDM are not compatible with checking with RDKit.")
+                raise ValueError("Splits determined by Anderson are not compatible with checking with RDKit.")
 
             if self.start_index is not None or self.end_index is not None:
-                logging.warning("When use_EDM_splits is True, start_index and end_index refer to the indices of the EDM splits.")
+                logging.warning("When use_Anderson_splits is True, start_index and end_index refer to the indices of the Anderson splits.")
 
     @staticmethod
     def get_atomic_numbers() -> np.ndarray:
@@ -63,12 +63,12 @@ class QM9(datatypes.MolecularDataset):
         with open(README) as f:
             print("Dataset description:", f.read())
 
-        if not self.use_EDM_splits:
+        if not self.use_Anderson_splits:
             self.all_graphs = list(load_qm9(self.root_dir, self.check_with_rdkit, self.start_index, self.end_index))
             return
 
         self.all_graphs = list(load_qm9(self.root_dir, self.check_with_rdkit))
-        splits = get_EDM_splits(self.root_dir)
+        splits = get_Anderson_splits(self.root_dir)
         split = splits[self.split]
         if self.start_index is not None:
             split = split[self.start_index:]
@@ -194,11 +194,15 @@ def remove_uncharacterized_molecules(
     Ngdb9 = 133885
     included_idxs = np.array(sorted(list(set(range(Ngdb9)) - set(excluded_idxs))))
     return included_idxs, excluded_idxs
-    
-def get_EDM_splits(
+
+
+def get_Anderson_splits(
     root_dir: str,
 ) -> Dict[str, np.ndarray]:
-    """Adapted from https://github.com/ehoogeboom/e3_diffusion_for_molecules/blob/main/qm9/data/prepare/qm9.py."""
+    """Use splits from Anderson, et al. (https://arxiv.org/abs/1906.04015).
+
+    Adapted from https://github.com/ehoogeboom/e3_diffusion_for_molecules/blob/main/qm9/data/prepare/qm9.py.
+    """
     included_idxs, excluded_idxs = remove_uncharacterized_molecules(root_dir)
 
     # Now, generate random permutations to assign molecules to training/valation/test sets.

@@ -1,6 +1,6 @@
 # Atomic Datasets
 
-This repository contains the following 3D molecular datasets:
+This repository provides an easy interface to the following 3D molecular datasets:
 - QM9
 - GEOM (Drugs)
 - tmQM
@@ -97,6 +97,36 @@ Preprocessed GEOM (Drugs) data was obtained from:
     note={Copyright - Database copyright ProQuest LLC; ProQuest does not claim copyright in the individual underlying works; Last updated - 2023-03-04},
     language={English},
     url={https://www.proquest.com/dissertations-theses/toward-systematic-design-complex-materials/docview/2137540057/se-2},
+}
+```
+Preprocessing code adapted from:
+```bibtex
+@misc{anderson2019cormorantcovariantmolecularneural,
+      title={Cormorant: Covariant Molecular Neural Networks}, 
+      author={Brandon Anderson and Truong-Son Hy and Risi Kondor},
+      year={2019},
+      eprint={1906.04015},
+      archivePrefix={arXiv},
+      primaryClass={physics.comp-ph},
+      url={https://arxiv.org/abs/1906.04015}, 
+}
+@misc{hoogeboom2022equivariantdiffusionmoleculegeneration,
+      title={Equivariant Diffusion for Molecule Generation in 3D}, 
+      author={Emiel Hoogeboom and Victor Garcia Satorras and Clément Vignac and Max Welling},
+      year={2022},
+      eprint={2203.17003},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2203.17003}, 
+}
+@misc{morehead2024geometrycompletediffusion3dmolecule,
+      title={Geometry-Complete Diffusion for 3D Molecule Generation and Optimization}, 
+      author={Alex Morehead and Jianlin Cheng},
+      year={2024},
+      eprint={2302.04313},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2302.04313}, 
 }
 ```
 
