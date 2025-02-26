@@ -93,7 +93,7 @@ def preprocess(root_dir: str):
     print("Download complete.")
 
 
-def load_GEOM_drugs(root_dir: str, start_index: Optional[int], end_index: Optional[int]) -> Iterable[datatypes.Graph]:
+def load_GEOM_drugs(root_dir: str, start_index: Optional[int] = None, end_index: Optional[int] = None) -> Iterable[datatypes.Graph]:
     """Adapted from https://github.com/BioinfoMachineLearning/bio-diffusion/blob/main/src/datamodules/components/edm/build_geom_dataset.py."""
 
     conformation_file = os.path.join(root_dir, "data", "EDM", "GEOM", "GEOM_drugs_30.npy")
