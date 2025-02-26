@@ -1,15 +1,17 @@
-
 from rdkit import Chem
+
 
 def atomic_number_to_symbol(atomic_number: int) -> str:
     """Convert atomic number to atomic symbol."""
     ptable = Chem.GetPeriodicTable()
     return ptable.GetElementSymbol(atomic_number)
 
+
 def atomic_symbol_to_number(atomic_symbol: str) -> int:
     """Convert atomic symbol to atomic number."""
     ptable = Chem.GetPeriodicTable()
     return ptable.GetAtomicNumber(atomic_symbol)
+
 
 def is_molecule_sane(mol: Chem.Mol) -> bool:
     """Check that the molecule passes some basic sanity checks from Posebusters.

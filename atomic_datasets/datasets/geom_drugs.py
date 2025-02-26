@@ -33,13 +33,16 @@ class GEOMDrugs(datatypes.MolecularDataset):
         self.preprocessed = False
         self.all_graphs = None
 
-
         if self.use_GCDM_splits:
             if self.split is None:
-                raise ValueError("When use_GCDM_splits is True, split must be provided.")
+                raise ValueError(
+                    "When use_GCDM_splits is True, split must be provided."
+                )
 
             if self.start_index is not None or self.end_index is not None:
-                logging.warning("When use_GCDM_splits is True, start_index and end_index refer to the indices of the GCDM splits.")
+                logging.warning(
+                    "When use_GCDM_splits is True, start_index and end_index refer to the indices of the GCDM splits."
+                )
 
     @staticmethod
     def get_atomic_numbers() -> np.ndarray:
@@ -50,23 +53,25 @@ class GEOMDrugs(datatypes.MolecularDataset):
 
         preprocess(self.root_dir)
         if not self.use_GCDM_splits:
-            self.all_graphs = list(load_GEOM_drugs(self.root_dir, self.start_index, self.end_index))
+            self.all_graphs = list(
+                load_GEOM_drugs(self.root_dir, self.start_index, self.end_index)
+            )
             return
 
         self.all_graphs = list(load_GEOM_drugs(self.root_dir))
         splits = get_GCDM_splits(self.root_dir)
         split = splits[self.split]
         if self.start_index is not None:
-            split = split[self.start_index:]
+            split = split[self.start_index :]
         if self.end_index is not None:
-            split = split[:self.end_index]
+            split = split[: self.end_index]
         self.all_graphs = [self.all_graphs[i] for i in split]
 
     @utils.after_preprocess
     def __iter__(self) -> Iterable[datatypes.Graph]:
         for graph in self.all_graphs:
             yield graph
-    
+
     @utils.after_preprocess
     def __len__(self) -> int:
         return len(self.all_graphs)
@@ -78,7 +83,9 @@ class GEOMDrugs(datatypes.MolecularDataset):
 
 def preprocess(root_dir: str):
     """Preprocess the files for the GEOM (Drugs) dataset."""
-    conformation_file = os.path.join(root_dir, "data", "EDM", "GEOM", "GEOM_drugs_30.npy")
+    conformation_file = os.path.join(
+        root_dir, "data", "EDM", "GEOM", "GEOM_drugs_30.npy"
+    )
     if os.path.exists(conformation_file):
         print(f"Using downloaded data: {conformation_file}")
         return
@@ -93,10 +100,14 @@ def preprocess(root_dir: str):
     print("Download complete.")
 
 
-def load_GEOM_drugs(root_dir: str, start_index: Optional[int] = None, end_index: Optional[int] = None) -> Iterable[datatypes.Graph]:
+def load_GEOM_drugs(
+    root_dir: str, start_index: Optional[int] = None, end_index: Optional[int] = None
+) -> Iterable[datatypes.Graph]:
     """Adapted from https://github.com/BioinfoMachineLearning/bio-diffusion/blob/main/src/datamodules/components/edm/build_geom_dataset.py."""
 
-    conformation_file = os.path.join(root_dir, "data", "EDM", "GEOM", "GEOM_drugs_30.npy")
+    conformation_file = os.path.join(
+        root_dir, "data", "EDM", "GEOM", "GEOM_drugs_30.npy"
+    )
     all_data = np.load(conformation_file)  # 2D array: num_atoms x 5
 
     mol_id = all_data[:, 0].astype(int)
@@ -129,7 +140,9 @@ def load_GEOM_drugs(root_dir: str, start_index: Optional[int] = None, end_index:
 def get_GCDM_splits(root_dir: str) -> Dict[str, np.ndarray]:
     """Splits for GEOM (Drugs). Adapted from https://github.com/BioinfoMachineLearning/bio-diffusion/blob/main/src/datamodules/components/edm/build_geom_dataset.py."""
 
-    permutation_file = os.path.join(root_dir, "data", "EDM", "GEOM", "GEOM_permutation.npy")
+    permutation_file = os.path.join(
+        root_dir, "data", "EDM", "GEOM", "GEOM_permutation.npy"
+    )
     permutation = np.load(permutation_file)
 
     num_mol = len(permutation)
