@@ -56,9 +56,9 @@ class Proteins(datatypes.MolecularDataset):
         self.alpha_carbons_only = alpha_carbons_only
 
     @staticmethod
-    def get_atomic_numbers(alpha_carbons_only: bool) -> np.ndarray:
+    def get_atomic_numbers() -> np.ndarray:
         return (
-            np.asarray([6]) if alpha_carbons_only else np.asarray([6, 7])
+            np.asarray([6]) if self.alpha_carbons_only else np.asarray([6, 7])
         )  # representing residues by their CB atoms
 
     @staticmethod
@@ -88,7 +88,7 @@ class Proteins(datatypes.MolecularDataset):
         return mapping
 
     def num_species(self) -> int:
-        return len(Proteins.get_atomic_numbers(self.alpha_carbons_only))
+        return len(self.get_atomic_numbers())
 
     @staticmethod
     def get_amino_acids() -> List[str]:
