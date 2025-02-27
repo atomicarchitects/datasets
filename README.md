@@ -4,6 +4,8 @@ This repository provides an easy interface to the following 3D molecular dataset
 - QM9
 - GEOM (Drugs)
 - tmQM
+- CATH
+- Miniproteins
 
 as well as the following toy datasets:
 - Platonic Solids
@@ -84,6 +86,73 @@ Preprocessed GEOM (Drugs) data was obtained from:
 	title = {tmQM Dataset---Quantum Geometries and Properties of 86k Transition Metal Complexes},
 	volume = {60},
 	year = {2020}
+}
+```
+- CATH:
+```bibtex
+@article{
+    author = {
+Ian Sillitoe and Nicola Bordin and Natalie Dawson and Vaishali P Waman and Paul Ashford and Harry M Scholes  and Camilla S M Pang and Laurel Woodridge and Clemens Rauer and Neeladri Sen and Mahnaz Abbasian and Sean Le Cornu and Su Datt Lam and Karel Berka and Ivana Hutařová Varekova and Radka Svobodova and Jon Lees and Christine A Orengo},
+    title={CATH: increased structural coverage of functional space},
+    journal={Nucleic Acids Res.},
+    year={2021},
+    month={1},
+    day={8},
+    volume={9},
+    number={D1},
+    pages={D266-D273},
+    doi={10.1093/nar/gkaa1079},
+}
+@article{
+    author={Vaishali P Waman and Nicola Bordin and Rachel Alcraft and Robert Vickerstaff and Clemens Rauer and Qian Chan and Ian Sillitoe and Hazuki Yamamori and Christine Orengo},
+    title={CATH 2024: CATH-AlphaFlow Doubles the Number of Structures in CATH and Reveals Nearly 200 New Folds},
+    journal={J Mol Biol},
+    year={2024},
+    month={9},
+    day={1},
+    volume={436},
+    number={17},
+    pages=168551,
+    doi={10.1016/j.jmb.2024.168551},
+}
+@article{
+    author={
+C A Orengo and A D Michie and S Jones and D T Jones and M B Swindells and J M Thornton},
+    title={CATH--a hierarchic classification of protein domain structures},
+    journal={Structure},
+    year=1997,
+    month=8,
+    day=15,
+    volume=5,
+    number=8,
+    pages={1093-108},
+    doi={10.1016/s0969-2126(97)00260-8}
+}
+@article{
+    author={
+        Tony E Lewis and Ian Sillitoe and Natalie Dawson and Su Datt Lam and Tristan Clarke and David Lee and Christine Orengo and Jonathan Lees
+    },
+    title={Gene3D: Extensive prediction of globular domains in proteins},
+    journal={Nucleic Acids Res.},
+    year=2018,
+    month=1,
+    day=4,
+    volume=46,
+    number={D1},
+    pages={D1282},
+    doi={10.1093/nar/gkx1187}
+}
+```
+- Miniproteins:
+```bibtex
+@article{miniproteins,
+	author = {Cao, Longxing and Coventry, Brian and Goreshnik, Inna and Huang, Buwei and Sheffler, William and Park, Joon Sung and Jude, Kevin M. and Markovi{\'c}, Iva and Kadam, Rameshwar U. and Verschueren, Koen H. G. and Verstraete, Kenneth and Walsh, Scott Thomas Russell and Bennett, Nathaniel and Phal, Ashish and Yang, Aerin and Kozodoy, Lisa and DeWitt, Michelle and Picton, Lora and Miller, Lauren and Strauch, Eva-Maria and DeBouver, Nicholas D. and Pires, Allison and Bera, Asim K. and Halabiya, Samer and Hammerson, Bradley and Yang, Wei and Bernard, Steffen and Stewart, Lance and Wilson, Ian A. and Ruohola-Baker, Hannele and Schlessinger, Joseph and Lee, Sangwon and Savvides, Savvas N. and Garcia, K. Christopher and Baker, David},
+	journal = {Nature},
+	number = {7910},
+	pages = {551--560},
+	title = {Design of protein-binding proteins from the target structure alone},
+	volume = {605},
+	year = {2022}
 }
 ```
 - 3D Tetris:

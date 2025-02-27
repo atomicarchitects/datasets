@@ -17,7 +17,7 @@ MINIPROTEIN_URL = "https://files.ipd.uw.edu/pub/robust_de_novo_design_minibinder
 
 
 class Proteins(datatypes.MolecularDataset):
-    """CATH/Miniprotein protein structure datasets."""
+    """Generic protein structure dataset."""
 
     def __init__(
         self,
@@ -197,8 +197,8 @@ class CATH(Proteins):
         )
     
 
-class Miniprotein(Proteins):
-    """Miniprotein protein structure dataset."""
+class Miniproteins(Proteins):
+    """Miniproteins protein structure dataset."""
 
     def __init__(
         self,
