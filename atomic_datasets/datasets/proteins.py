@@ -16,7 +16,7 @@ CATH_URL = "http://download.cathdb.info/cath/releases/all-releases/v4_3_0/non-re
 MINIPROTEIN_URL = "https://files.ipd.uw.edu/pub/robust_de_novo_design_minibinders_2021/supplemental_files/scaffolds.tar.gz"
 
 
-class CATH(datatypes.MolecularDataset):
+class Proteins(datatypes.MolecularDataset):
     """CATH/Miniprotein protein structure datasets."""
 
     def __init__(
@@ -117,7 +117,7 @@ class CATH(datatypes.MolecularDataset):
     @staticmethod
     def get_species(alpha_carbons_only) -> List[str]:
         if alpha_carbons_only: return ["CA"]
-        return CATH.get_amino_acids() + ["C", "CA", "N"]
+        return Proteins.get_amino_acids() + ["C", "CA", "N"]
 
     def structures(self) -> Iterable[datatypes.Structures]:
         if self.all_structures is None:
@@ -161,6 +161,60 @@ class CATH(datatypes.MolecularDataset):
         }
         splits = {k: indices[v] for k, v in splits.items()}
         return splits
+
+
+class CATH(Proteins):
+    """CATH protein structure dataset."""
+
+    def __init__(
+        self,
+        root_dir: str,
+        num_train_molecules: int,
+        num_val_molecules: int,
+        num_test_molecules: int,
+        train_on_single_molecule: bool = False,
+        train_on_single_molecule_index: int = 0,
+        alpha_carbons_only: bool = False,
+        rng_seed: int = 6489,  # Taken from FoldingDiff: https://github.com/microsoft/foldingdiff
+    ):
+        super().__init__(
+            root_dir,
+            num_train_molecules,
+            num_val_molecules,
+            num_test_molecules,
+            "cath",
+            train_on_single_molecule,
+            train_on_single_molecule_index,
+            alpha_carbons_only,
+            rng_seed,
+        )
+    
+
+class Miniprotein(Proteins):
+    """Miniprotein protein structure dataset."""
+
+    def __init__(
+        self,
+        root_dir: str,
+        num_train_molecules: int,
+        num_val_molecules: int,
+        num_test_molecules: int,
+        train_on_single_molecule: bool = False,
+        train_on_single_molecule_index: int = 0,
+        alpha_carbons_only: bool = False,
+        rng_seed: int = 6489,  # Taken from FoldingDiff:
+    ):
+        super().__init__(
+            root_dir,
+            num_train_molecules,
+            num_val_molecules,
+            num_test_molecules,
+            "miniprotein",
+            train_on_single_molecule,
+            train_on_single_molecule_index,
+            alpha_carbons_only,
+            rng_seed,
+        )
 
 
 def load_data(
@@ -251,7 +305,7 @@ def load_data(
                     cb_atoms = np.argwhere(fragment.atom_name == "CB").flatten()
                     elements[cb_atoms] = fragment.res_name[cb_atoms]
                 species = np.vectorize(
-                    CATH.atoms_to_species(alpha_carbons_only).get
+                    Proteins.atoms_to_species(alpha_carbons_only).get
                 )(elements)
                 residue_starts = struc.get_residue_starts(fragment)
                 _add_structure(positions, species, mol_file, residue_starts)
