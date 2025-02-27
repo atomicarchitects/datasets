@@ -24,7 +24,7 @@ class PeriodicTable:
         self.rows = np.array(
             [0] * 2 + [1] * 8 + [2] * 8 + [3] * 18 + [4] * 18 + [5] * 32 + [6] * 32
         )
-        # s = 0, p = 1, 
+        # s = 0, p = 1,
         self.blocks = np.array(
             [0] * 2
             + [0] * 2

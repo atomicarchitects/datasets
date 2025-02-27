@@ -58,11 +58,14 @@ class Proteins(datatypes.MolecularDataset):
 
     @staticmethod
     def get_atomic_numbers(alpha_carbons_only: bool) -> np.ndarray:
-        return np.asarray([6]) if alpha_carbons_only else np.asarray([6, 7])  # representing residues by their CB atoms
+        return (
+            np.asarray([6]) if alpha_carbons_only else np.asarray([6, 7])
+        )  # representing residues by their CB atoms
 
     @staticmethod
     def species_to_atomic_numbers(alpha_carbons_only: bool) -> Dict[int, int]:
-        if alpha_carbons_only: return {0: 6}
+        if alpha_carbons_only:
+            return {0: 6}
         mapping = {}
         # C first, then CA, then amino acids
         for i in range(24):
@@ -70,12 +73,13 @@ class Proteins(datatypes.MolecularDataset):
         mapping[24] = 7  # N
         mapping[25] = 7  # X
         return mapping
-    
+
     @staticmethod
     def atoms_to_species(alpha_carbons_only: bool) -> Dict[str, int]:
-        if alpha_carbons_only: return {"CA": 0}
+        if alpha_carbons_only:
+            return {"CA": 0}
         mapping = {}
-        amino_acid_abbr = CATH.get_amino_acids()
+        amino_acid_abbr = Proteins.get_amino_acids()
         for i, aa in enumerate(amino_acid_abbr):
             mapping[aa] = i
         mapping["C"] = 22
@@ -85,7 +89,7 @@ class Proteins(datatypes.MolecularDataset):
         return mapping
 
     def num_species(self) -> int:
-        return len(CATH.get_atomic_numbers(self.alpha_carbons_only))
+        return len(Proteins.get_atomic_numbers(self.alpha_carbons_only))
 
     @staticmethod
     def get_amino_acids() -> List[str]:
@@ -116,7 +120,8 @@ class Proteins(datatypes.MolecularDataset):
 
     @staticmethod
     def get_species(alpha_carbons_only) -> List[str]:
-        if alpha_carbons_only: return ["CA"]
+        if alpha_carbons_only:
+            return ["CA"]
         return Proteins.get_amino_acids() + ["C", "CA", "N"]
 
     def structures(self) -> Iterable[datatypes.Structures]:
@@ -153,10 +158,12 @@ class Proteins(datatypes.MolecularDataset):
                 self.num_train_molecules + self.num_val_molecules,
                 min(
                     len(self.all_structures),
-                    (self.num_train_molecules
+                    (
+                        self.num_train_molecules
                         + self.num_val_molecules
-                        + self.num_test_molecules),
-                )
+                        + self.num_test_molecules
+                    ),
+                ),
             ),
         }
         splits = {k: indices[v] for k, v in splits.items()}
@@ -249,7 +256,9 @@ def load_data(
     all_structures = []
 
     def _add_structure(pos, spec, molfile, residue_starts):
-        assert len(pos) == len(spec), f"Length mismatch: {len(pos)} vs {len(spec)} in {molfile}"
+        assert len(pos) == len(spec), (
+            f"Length mismatch: {len(pos)} vs {len(spec)} in {molfile}"
+        )
 
         pos = np.asarray(pos)
         spec = np.asarray(spec)
@@ -287,14 +296,16 @@ def load_data(
             mask = np.isin(backbone.atom_name, ["CA", "N", "C", "CB"])
         backbone = backbone[mask]
         max_len = 4.0 if alpha_carbons_only else 2.6
-        fragment_starts = np.concatenate([
-            np.array([0]),
-            # distance between CB and N is ~2.4 angstroms + some wiggle room
-            struc.check_backbone_continuity(backbone, max_len=max_len),
-            np.array([len(backbone)]),
-        ])
+        fragment_starts = np.concatenate(
+            [
+                np.array([0]),
+                # distance between CB and N is ~2.4 angstroms + some wiggle room
+                struc.check_backbone_continuity(backbone, max_len=max_len),
+                np.array([len(backbone)]),
+            ]
+        )
         for i in range(len(fragment_starts) - 1):
-            fragment = backbone[fragment_starts[i]:fragment_starts[i + 1]]
+            fragment = backbone[fragment_starts[i] : fragment_starts[i + 1]]
             try:
                 positions = fragment.coord
                 elements = fragment.atom_name
@@ -304,15 +315,14 @@ def load_data(
                     # set CB to corresponding residue name
                     cb_atoms = np.argwhere(fragment.atom_name == "CB").flatten()
                     elements[cb_atoms] = fragment.res_name[cb_atoms]
-                species = np.vectorize(
-                    Proteins.atoms_to_species(alpha_carbons_only).get
-                )(elements)
+                species = np.vectorize(Proteins.atoms_to_species(alpha_carbons_only).get)(
+                    elements
+                )
                 residue_starts = struc.get_residue_starts(fragment)
                 _add_structure(positions, species, mol_file, residue_starts)
             except Exception as e:
                 print(e)
                 continue
 
-        
     logging.info(f"Loaded {len(all_structures)} structures.")
     return all_structures

@@ -38,7 +38,7 @@ class PlatonicSolids(datatypes.MolecularDataset):
 
         if start_index is not None:
             self.all_graphs = self.all_graphs[start_index:]
-        
+
         if end_index is not None:
             self.all_graphs = self.all_graphs[:end_index]
 
@@ -49,25 +49,19 @@ class PlatonicSolids(datatypes.MolecularDataset):
     def __iter__(self) -> Iterable[datatypes.Graph]:
         for graph in self.all_graphs:
             yield graph
-    
+
     def __len__(self) -> int:
         return len(self.all_graphs)
-    
+
     def __getitem__(self, idx: int) -> datatypes.Graph:
         return self.all_graphs[idx]
-
 
 
 def load_platonic_solids():
     """Obtained from https://en.wikipedia.org/wiki/Platonic_solid."""
     PHI = (1 + np.sqrt(5)) / 2
     solids = [
-        [
-            (1, 1, 1),
-            (1, -1, -1),
-            (-1, 1, -1),
-            (-1, -1, 1)
-        ],  # tetrahedron
+        [(1, 1, 1), (1, -1, -1), (-1, 1, -1), (-1, -1, 1)],  # tetrahedron
         [
             (1, 0, 0),
             (-1, 0, 0),
@@ -125,9 +119,11 @@ def load_platonic_solids():
     ]
     for solid in solids:
         solid = to_graph(np.asarray(solid, dtype=np.float32))
-        
+
         # Normalize the solid edges, so that the smallest inter-node distance is 1.
-        scale_factor = compute_minimum_distance_to_first_node(solid["nodes"]["positions"])
+        scale_factor = compute_minimum_distance_to_first_node(
+            solid["nodes"]["positions"]
+        )
         solid["nodes"]["positions"] /= scale_factor
 
         yield solid
