@@ -5,3 +5,4 @@ rdkit
 GitPython
 tqdm
 sh
+biotite

@@ -245,7 +245,7 @@ def load_data(
     dataset: str,
     root_dir: str,
     alpha_carbons_only: bool = False,
-) -> List[datatypes.Structures]:
+) -> List[datatypes.Graph]:
     """Load the dataset."""
 
     if not os.path.exists(root_dir):
@@ -281,15 +281,15 @@ def load_data(
         spec = np.asarray(spec)
 
         # Convert to Structure.
-        structure = datatypes.Structures(
-            nodes=datatypes.NodesInfo(
+        structure = datatypes.Graph(
+            nodes=dict(
                 positions=pos,
                 species=spec,
             ),
             edges=None,
             receivers=None,
             senders=None,
-            globals=datatypes.GlobalsInfo(
+            globals=dict(
                 num_residues=np.asarray([len(residue_starts)]),
                 residue_starts=residue_starts,
                 n_short_edge=None,
