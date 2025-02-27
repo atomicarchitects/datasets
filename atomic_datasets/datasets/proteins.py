@@ -1,4 +1,4 @@
-from typing import List, Iterable, Dict
+from typing import List, Iterable, Dict, Optional
 
 import os
 import logging
@@ -22,14 +22,14 @@ class Proteins(datatypes.MolecularDataset):
     def __init__(
         self,
         root_dir: str,
-        num_train_molecules: int,
-        num_val_molecules: int,
-        num_test_molecules: int,
         dataset: str,
-        train_on_single_molecule: bool = False,
-        train_on_single_molecule_index: int = 0,
-        alpha_carbons_only: bool = False,
-        rng_seed: int = 6489,  # Taken from FoldingDiff: https://github.com/microsoft/foldingdiff
+        split: str,
+        start_index: Optional[int] = None,
+        end_index: Optional[int] = None,
+        train_on_single_molecule: Optional[bool] = False,
+        train_on_single_molecule_index: Optional[int] = 0,
+        alpha_carbons_only: Optional[bool] = False,
+        rng_seed: Optional[int] = 6489,  # Taken from FoldingDiff: https://github.com/microsoft/foldingdiff
     ):
         super().__init__()
 
@@ -37,21 +37,20 @@ class Proteins(datatypes.MolecularDataset):
             raise ValueError("root_dir must be provided.")
 
         self.root_dir = root_dir
+        self.split = split
         self.train_on_single_molecule = train_on_single_molecule
 
         if self.train_on_single_molecule:
             logging.info(
                 f"Training on a single molecule with index {train_on_single_molecule_index}."
             )
-            self.num_train_molecules = 1
-            self.num_val_molecules = 1
-            self.num_test_molecules = 1
+            self.start_index = train_on_single_molecule_index
+            self.end_index = train_on_single_molecule_index + 1
         else:
-            self.num_train_molecules = num_train_molecules
-            self.num_val_molecules = num_val_molecules
-            self.num_test_molecules = num_test_molecules
+            self.start_index = start_index
+            self.end_index = end_index
 
-        self.all_structures = None
+        self.all_graphs = None
         self.rng = np.random.default_rng(seed=rng_seed)
         self.dataset = dataset
         self.alpha_carbons_only = alpha_carbons_only
@@ -123,18 +122,36 @@ class Proteins(datatypes.MolecularDataset):
         if alpha_carbons_only:
             return ["CA"]
         return Proteins.get_amino_acids() + ["C", "CA", "N"]
-
-    def structures(self) -> Iterable[datatypes.Structures]:
-        if self.all_structures is None:
+    
+    def preprocess(self):
+        if self.all_graphs is None:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                self.all_structures = load_data(
+                self.all_graphs = load_data(
                     self.dataset,
                     self.root_dir,
                     self.alpha_carbons_only,
                 )
+        splits = self.split_indices()
+        split = splits[self.split]
+        if self.start_index is not None:
+            split = split[self.start_index :]
+        if self.end_index is not None:
+            split = split[: self.end_index]
+        self.all_graphs = [self.all_graphs[i] for i in split]
 
-        return self.all_structures
+    @utils.after_preprocess
+    def __iter__(self) -> Iterable[datatypes.Graph]:
+        for graph in self.all_graphs:
+            yield graph
+
+    @utils.after_preprocess
+    def __len__(self) -> int:
+        return len(self.all_graphs)
+
+    @utils.after_preprocess
+    def __getitem__(self, idx: int) -> datatypes.Graph:
+        return self.all_graphs[idx]
 
     def split_indices(self) -> Dict[str, np.ndarray]:
         """Return a dictionary of indices for each split."""
@@ -176,20 +193,20 @@ class CATH(Proteins):
     def __init__(
         self,
         root_dir: str,
-        num_train_molecules: int,
-        num_val_molecules: int,
-        num_test_molecules: int,
-        train_on_single_molecule: bool = False,
-        train_on_single_molecule_index: int = 0,
-        alpha_carbons_only: bool = False,
-        rng_seed: int = 6489,  # Taken from FoldingDiff: https://github.com/microsoft/foldingdiff
+        split: str,
+        start_index: Optional[int] = None,
+        end_index: Optional[int] = None,
+        train_on_single_molecule: Optional[bool] = False,
+        train_on_single_molecule_index: Optional[int] = 0,
+        alpha_carbons_only: Optional[bool] = False,
+        rng_seed: Optional[int] = 6489,  # Taken from FoldingDiff: https://github.com/microsoft/foldingdiff
     ):
         super().__init__(
             root_dir,
-            num_train_molecules,
-            num_val_molecules,
-            num_test_molecules,
             "cath",
+            split,
+            start_index,
+            end_index,
             train_on_single_molecule,
             train_on_single_molecule_index,
             alpha_carbons_only,
@@ -203,20 +220,20 @@ class Miniproteins(Proteins):
     def __init__(
         self,
         root_dir: str,
-        num_train_molecules: int,
-        num_val_molecules: int,
-        num_test_molecules: int,
-        train_on_single_molecule: bool = False,
-        train_on_single_molecule_index: int = 0,
-        alpha_carbons_only: bool = False,
-        rng_seed: int = 6489,  # Taken from FoldingDiff:
+        split: str,
+        start_index: Optional[int] = None,
+        end_index: Optional[int] = None,
+        train_on_single_molecule: Optional[bool] = False,
+        train_on_single_molecule_index: Optional[int] = 0,
+        alpha_carbons_only: Optional[bool] = False,
+        rng_seed: Optional[int] = 6489,  # Taken from FoldingDiff: https://github.com/microsoft/foldingdiff
     ):
         super().__init__(
             root_dir,
-            num_train_molecules,
-            num_val_molecules,
-            num_test_molecules,
             "miniprotein",
+            split,
+            start_index,
+            end_index,
             train_on_single_molecule,
             train_on_single_molecule_index,
             alpha_carbons_only,
