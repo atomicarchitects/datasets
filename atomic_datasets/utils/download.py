@@ -85,7 +85,7 @@ def extract_zip(path: str, root: str) -> None:
 def extract_tar(path: str, root: str):
     """Extract a .tar file to the root."""
     print(f"Extracting {path} to {root}")
-    with tarfile.TarFile(path, "r") as f:
+    with tarfile.open(path, "r") as f:
         f.extractall(path=root)
 
 
