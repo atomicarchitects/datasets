@@ -16,7 +16,34 @@ CATH_URL = "http://download.cathdb.info/cath/releases/all-releases/v4_3_0/non-re
 MINIPROTEIN_URL = "https://files.ipd.uw.edu/pub/robust_de_novo_design_minibinders_2021/supplemental_files/scaffolds.tar.gz"
 
 
-class Proteins(datatypes.MolecularDataset):
+def get_amino_acids():
+    return [
+        "ALA",
+        "ARG",
+        "ASN",
+        "ASP",
+        "CYS",
+        "GLN",
+        "GLU",
+        "GLY",
+        "HIS",
+        "ILE",
+        "LEU",
+        "LYS",
+        "MET",
+        "PHE",
+        "PRO",
+        "PYL",
+        "SEC",
+        "SER",
+        "THR",
+        "TRP",
+        "TYR",
+        "VAL",
+    ]
+
+
+class ProteinsGeneric(datatypes.MolecularDataset):
     """Generic protein structure dataset."""
 
     def __init__(
@@ -28,9 +55,7 @@ class Proteins(datatypes.MolecularDataset):
         end_index: Optional[int] = None,
         train_on_single_molecule: Optional[bool] = False,
         train_on_single_molecule_index: Optional[int] = 0,
-        alpha_carbons_only: Optional[bool] = False,
         max_residues: Optional[int] = None,
-        rng_seed: Optional[int] = 6489,  # Taken from FoldingDiff: https://github.com/microsoft/foldingdiff
     ):
         super().__init__()
 
@@ -54,89 +79,17 @@ class Proteins(datatypes.MolecularDataset):
             self.end_index = end_index
 
         self.all_graphs = None
-        self.rng = np.random.default_rng(seed=rng_seed)
         self.dataset = dataset
-        self.alpha_carbons_only = alpha_carbons_only
-
-    @staticmethod
-    def get_atomic_numbers(alpha_carbons_only) -> np.ndarray:
-        return (
-            np.asarray([6]) if alpha_carbons_only else np.asarray([6, 7])
-        )  # representing residues by their CB atoms
-
-    @staticmethod
-    def species_to_atomic_numbers(alpha_carbons_only: bool) -> Dict[int, int]:
-        if alpha_carbons_only:
-            return {0: 6}
-        mapping = {}
-        # C first, then CA, then amino acids
-        for i in range(24):
-            mapping[i] = 6
-        mapping[24] = 7  # N
-        mapping[25] = 7  # X
-        return mapping
-
-    @staticmethod
-    def atoms_to_species(alpha_carbons_only: bool) -> Dict[str, int]:
-        if alpha_carbons_only:
-            return {"CA": 0}
-        mapping = {}
-        amino_acid_abbr = Proteins.get_amino_acids()
-        for i, aa in enumerate(amino_acid_abbr):
-            mapping[aa] = i
-        mapping["C"] = 22
-        mapping["CA"] = 23
-        mapping["N"] = 24
-        mapping["X"] = 25
-        return mapping
-
-    def num_species(self) -> int:
-        return len(self.get_atomic_numbers(self.alpha_carbons_only))
-
-    @staticmethod
-    def get_amino_acids() -> List[str]:
-        return [
-            "ALA",
-            "ARG",
-            "ASN",
-            "ASP",
-            "CYS",
-            "GLN",
-            "GLU",
-            "GLY",
-            "HIS",
-            "ILE",
-            "LEU",
-            "LYS",
-            "MET",
-            "PHE",
-            "PRO",
-            "PYL",
-            "SEC",
-            "SER",
-            "THR",
-            "TRP",
-            "TYR",
-            "VAL",
-        ]
-
-    @staticmethod
-    def get_species(alpha_carbons_only) -> List[str]:
-        if alpha_carbons_only:
-            return ["CA"]
-        return Proteins.get_amino_acids() + ["C", "CA", "N"]
     
+    def load_data(self):
+        raise NotImplementedError
+
     def preprocess(self):
         self.preprocessed = True
         if self.all_graphs is None:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                self.all_graphs = load_data(
-                    self.dataset,
-                    self.root_dir,
-                    self.alpha_carbons_only,
-                    self.max_residues,
-                )
+                self.all_graphs = self.load_data()
         splits = self.split_indices()
         split = splits[self.split]
         if self.start_index is not None:
@@ -161,34 +114,137 @@ class Proteins(datatypes.MolecularDataset):
     def split_indices(self) -> Dict[str, np.ndarray]:
         raise NotImplementedError
 
-class CATH(Proteins):
-    """CATH protein structure dataset."""
-
+class ProteinsAlphaCarbons(ProteinsGeneric):
     def __init__(
         self,
         root_dir: str,
+        dataset: str,
         split: str,
         start_index: Optional[int] = None,
         end_index: Optional[int] = None,
         train_on_single_molecule: Optional[bool] = False,
         train_on_single_molecule_index: Optional[int] = 0,
-        alpha_carbons_only: Optional[bool] = False,
         max_residues: Optional[int] = None,
-        rng_seed: Optional[int] = 6489,  # Taken from FoldingDiff: https://github.com/microsoft/foldingdiff
     ):
         super().__init__(
             root_dir,
-            "cath",
+            dataset,
             split,
             start_index,
             end_index,
             train_on_single_molecule,
             train_on_single_molecule_index,
-            alpha_carbons_only,
             max_residues,
-            rng_seed,
         )
     
+    def load_data(self):
+        return load_data(
+            self.dataset,
+            self.root_dir,
+            ProteinsAlphaCarbons.atoms_to_species(),
+            alpha_carbons_only=True,
+            max_residues=self.max_residues,
+        )
+    
+    @staticmethod
+    def get_atomic_numbers() -> np.ndarray:
+        return np.asarray([6])
+    
+    @staticmethod
+    def species_to_atomic_numbers() -> Dict[int, int]:
+        return {0: 6}
+    
+    @staticmethod
+    def atoms_to_species() -> Dict[str, int]:
+        return {"CA": 0}
+
+    @staticmethod
+    def get_species() -> List[str]:
+        return ["CA"]
+
+class ProteinsBackbone(ProteinsGeneric):
+    def __init__(
+        self,
+        root_dir: str,
+        dataset: str,
+        split: str,
+        start_index: Optional[int] = None,
+        end_index: Optional[int] = None,
+        train_on_single_molecule: Optional[bool] = False,
+        train_on_single_molecule_index: Optional[int] = 0,
+        max_residues: Optional[int] = None,
+    ):
+        super().__init__(
+            root_dir,
+            dataset,
+            split,
+            start_index,
+            end_index,
+            train_on_single_molecule,
+            train_on_single_molecule_index,
+            max_residues,
+        )
+    
+    def load_data(self):
+        return load_data(
+            self.dataset,
+            self.root_dir,
+            ProteinsBackbone.atoms_to_species(),
+            alpha_carbons_only=False,
+            max_residues=self.max_residues,
+        )
+    
+    @staticmethod
+    def get_atomic_numbers() -> np.ndarray:
+        return np.asarray([6, 7])  # representing residues by their CB atoms
+
+    @staticmethod
+    def species_to_atomic_numbers() -> Dict[int, int]:
+        mapping = {}
+        # C first, then CA, then amino acids
+        for i in range(24):
+            mapping[i] = 6
+        mapping[24] = 7  # N
+        mapping[25] = 7  # X
+        return mapping
+
+    @staticmethod
+    def atoms_to_species() -> Dict[str, int]:
+        mapping = {}
+        amino_acid_abbr = get_amino_acids()
+        for i, aa in enumerate(amino_acid_abbr):
+            mapping[aa] = i
+        mapping["C"] = 22
+        mapping["CA"] = 23
+        mapping["N"] = 24
+        mapping["X"] = 25
+        return mapping
+
+    @staticmethod
+    def get_species() -> List[str]:
+        return get_amino_acids() + ["C", "CA", "N"]
+
+class SplitterMixin:
+    """Retrieves dataset splits."""
+
+    def __init__(
+        self,
+        num_train_molecules: int,
+        num_val_molecules: int,
+        num_test_molecules: int,
+        train_on_single_molecule: bool,
+        train_on_single_molecule_index: int,
+        rng_seed: Optional[int] = 0,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.num_train_molecules = num_train_molecules
+        self.num_val_molecules = num_val_molecules
+        self.num_test_molecules = num_test_molecules
+        self.train_on_single_molecule = train_on_single_molecule
+        self.train_on_single_molecule_index = train_on_single_molecule_index
+        self.rng = np.random.default_rng(seed=rng_seed)
+
     def split_indices(self) -> Dict[str, np.ndarray]:
         """Return a dictionary of indices for each split."""
         if self.train_on_single_molecule:
@@ -199,36 +255,25 @@ class CATH(Proteins):
             }
 
         # using cath splits from foldingdiff
-        indices = np.arange(len(self.all_graphs))
+        total_mols = self.num_train_molecules + self.num_val_molecules + self.num_test_molecules
+        indices = np.arange(total_mols)
         self.rng.shuffle(indices)
-        num_train_molecules = 16793
-        num_val_molecules = 2100
-        num_test_molecules = 2099
         splits = {
-            "train": np.arange(num_train_molecules),
+            "train": np.arange(self.num_train_molecules),
             "val": np.arange(
-                num_train_molecules,
-                num_train_molecules + num_val_molecules,
+                self.num_train_molecules,
+                self.num_train_molecules + self.num_val_molecules,
             ),
             "test": np.arange(
-                num_train_molecules + num_val_molecules,
-                min(
-                    len(self.all_graphs),
-                    (
-                        num_train_molecules
-                        + num_val_molecules
-                        + num_test_molecules
-                    ),
-                ),
+                self.num_train_molecules + self.num_val_molecules,
+                min(len(self.all_graphs), total_mols),
             ),
         }
         splits = {k: indices[v] for k, v in splits.items()}
         return splits
-    
 
-class Miniproteins(Proteins):
-    """Miniproteins protein structure dataset."""
 
+class CATHAlphaCarbons(SplitterMixin, ProteinsAlphaCarbons):
     def __init__(
         self,
         root_dir: str,
@@ -237,64 +282,57 @@ class Miniproteins(Proteins):
         end_index: Optional[int] = None,
         train_on_single_molecule: Optional[bool] = False,
         train_on_single_molecule_index: Optional[int] = 0,
-        alpha_carbons_only: Optional[bool] = False,
+        max_residues: Optional[int] = None,
+        rng_seed: Optional[int] = 6489,  # Taken from FoldingDiff: https://github.com/microsoft/foldingdiff
+    ):
+        super().__init__(
+            16793,
+            2100,
+            2099,
+            train_on_single_molecule,
+            train_on_single_molecule_index,
+            rng_seed,
+            root_dir=root_dir,
+            dataset="cath",
+            split=split,
+            start_index=start_index,
+            end_index=end_index,
+            max_residues=max_residues,
+        )
+
+
+class MiniproteinsAlphaCarbons(SplitterMixin, ProteinsAlphaCarbons):
+    def __init__(
+        self,
+        root_dir: str,
+        split: str,
+        start_index: Optional[int] = None,
+        end_index: Optional[int] = None,
+        train_on_single_molecule: Optional[bool] = False,
+        train_on_single_molecule_index: Optional[int] = 0,
         max_residues: Optional[int] = None,
         rng_seed: Optional[int] = 0,
     ):
         super().__init__(
-            root_dir,
-            "miniproteins",
-            split,
-            start_index,
-            end_index,
+            53446,
+            6681,
+            6681,
             train_on_single_molecule,
             train_on_single_molecule_index,
-            alpha_carbons_only,
-            max_residues,
             rng_seed,
+            root_dir=root_dir,
+            dataset="miniproteins",
+            split=split,
+            start_index=start_index,
+            end_index=end_index,
+            max_residues=max_residues,
         )
-    
-    def split_indices(self) -> Dict[str, np.ndarray]:
-        """Return a dictionary of indices for each split."""
-        if self.train_on_single_molecule:
-            return {
-                "train": [self.train_on_single_molecule_index],
-                "val": [self.train_on_single_molecule_index],
-                "test": [self.train_on_single_molecule_index],
-            }
-
-        # using miniproteins splits from ophiuchus
-        indices = np.arange(len(self.all_graphs))
-        self.rng.shuffle(indices)
-        num_train_molecules = 53446
-        num_val_molecules = 6681
-        num_test_molecules = 6681
-        splits = {
-            "train": np.arange(num_train_molecules),
-            "val": np.arange(
-                num_train_molecules,
-                num_train_molecules + num_val_molecules,
-            ),
-            "test": np.arange(
-                num_train_molecules + num_val_molecules,
-                min(
-                    len(self.all_graphs),
-                    (
-                        num_train_molecules
-                        + num_val_molecules
-                        + num_test_molecules
-                    ),
-                ),
-            ),
-        }
-        splits = {k: indices[v] for k, v in splits.items()}
-        return splits
-
 
 def load_data(
     dataset: str,
     root_dir: str,
-    alpha_carbons_only: bool = False,
+    atoms_to_species: Dict[str, int],
+    alpha_carbons_only: bool,
     max_residues: Optional[int] = None,
 ) -> List[datatypes.Graph]:
     """Load the dataset."""
@@ -355,7 +393,11 @@ def load_data(
         mol_path = os.path.join(mols_path, mol_file).strip()
         # read pdb
         f = pdb.PDBFile.read(mol_path)
-        structure = pdb.get_structure(f)
+        try:
+            structure = pdb.get_structure(f)
+        except:
+            print(f"Could not read {mol_path}")
+            continue
         backbone = structure.get_array(0)
         if alpha_carbons_only:
             mask = np.isin(backbone.atom_name, ["CA"])
@@ -382,7 +424,7 @@ def load_data(
                     # set CB to corresponding residue name
                     cb_atoms = np.argwhere(fragment.atom_name == "CB").flatten()
                     elements[cb_atoms] = fragment.res_name[cb_atoms]
-                species = np.vectorize(Proteins.atoms_to_species(alpha_carbons_only).get)(
+                species = np.vectorize(atoms_to_species.get)(
                     elements
                 )
                 # cut down # of residues if necessary
@@ -398,6 +440,7 @@ def load_data(
                 assert len(positions) >= 5, f"Too few atoms in {mol_file}"
                 _add_structure(positions, species, mol_file)
             except Exception as e:
+                # print(e)
                 continue
 
     logging.info(f"Loaded {len(all_structures)} structures.")
