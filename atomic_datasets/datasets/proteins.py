@@ -198,15 +198,15 @@ class ProteinsBackbone(ProteinsGeneric):
     def get_atomic_numbers() -> np.ndarray:
         return np.asarray([6, 7])  # representing residues by their CB atoms
 
-    @staticmethod
-    def species_to_atomic_numbers() -> Dict[int, int]:
+    @classmethod
+    def species_to_atomic_numbers(cls, species: np.ndarray) -> Dict[int, int]:
         mapping = {}
         # C first, then CA, then amino acids
         for i in range(24):
             mapping[i] = 6
         mapping[24] = 7  # N
         mapping[25] = 7  # X
-        return mapping
+        return np.vectorize(mapping.get)(species)
 
     @staticmethod
     def atoms_to_species() -> Dict[str, int]:
