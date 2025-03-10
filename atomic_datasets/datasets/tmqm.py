@@ -1,9 +1,10 @@
-from typing import Iterable
+from typing import Iterable, Dict
 import os
 
 import tqdm
 import numpy as np
 import ase.io
+from typing import Optional
 
 from atomic_datasets import utils
 from atomic_datasets import datatypes
@@ -15,7 +16,13 @@ TMQM_URL = r"https://github.com/bbskjelstad/tmqm.git"
 class tmQM(datatypes.MolecularDataset):
     """TMQM dataset."""
 
-    def __init__(self, root_dir: str):
+    def __init__(
+            self,
+            root_dir: str,
+            split: Optional[str] = None,
+            start_index: Optional[int] = None,
+            end_index: Optional[int] = None,
+        ):
         super().__init__()
 
         if root_dir is None:
@@ -24,6 +31,9 @@ class tmQM(datatypes.MolecularDataset):
         self.root_dir = root_dir
         self.preprocessed = False
         self.all_graphs = None
+        self.split = split
+        self.start_index = start_index
+        self.end_index = end_index
 
     @staticmethod
     def get_atomic_numbers() -> np.ndarray:
@@ -31,9 +41,44 @@ class tmQM(datatypes.MolecularDataset):
 
     def preprocess(self):
         self.preprocessed = True
-
-        preprocess(self.root_dir)
         self.all_graphs = list(load_tmQM(self.root_dir))
+        splits = self.split_indices()
+        split = splits[self.split]
+        if self.start_index is not None:
+            split = split[self.start_index :]
+        if self.end_index is not None:
+            split = split[: self.end_index]
+        self.all_graphs = [self.all_graphs[i] for i in split]
+    
+    def split_indices(self) -> Dict[str, np.ndarray]:
+        """Return a dictionary of indices for each split."""
+        # if self.train_on_single_molecule:
+        #     return {
+        #         "train": [self.train_on_single_molecule_index],
+        #         "val": [self.train_on_single_molecule_index],
+        #         "test": [self.train_on_single_molecule_index],
+        #     }
+
+        num_train_molecules = 69000
+        num_val_molecules = 9000
+        num_test_molecules = 8665
+
+        total_mols = num_train_molecules + num_val_molecules + num_test_molecules
+        indices = np.arange(total_mols)
+        self.rng.shuffle(indices)
+        splits = {
+            "train": np.arange(num_train_molecules),
+            "val": np.arange(
+                num_train_molecules,
+                num_train_molecules + num_val_molecules,
+            ),
+            "test": np.arange(
+                num_train_molecules + num_val_molecules,
+                min(len(self.all_graphs), total_mols),
+            ),
+        }
+        splits = {k: indices[v] for k, v in splits.items()}
+        return splits
 
     @utils.after_preprocess
     def __iter__(self) -> Iterable[datatypes.Graph]:
@@ -49,7 +94,7 @@ class tmQM(datatypes.MolecularDataset):
         return self.all_graphs[idx]
 
 
-def preprocess(root_dir: str):
+def get_raw_data(root_dir: str):
     """Preprocess the files for the tmQM dataset."""
     if not os.path.exists(root_dir):
         os.makedirs(root_dir)
@@ -80,6 +125,7 @@ def preprocess(root_dir: str):
 
 def load_tmQM(root_dir: str) -> Iterable[datatypes.Graph]:
     """Load the tmQM dataset."""
+    get_raw_data(root_dir)
     xyzs_path = os.path.join(root_dir, "xyz")
     for mol_file in tqdm.tqdm(sorted(os.listdir(xyzs_path)), desc="Loading tmQM"):
         mol_file = os.path.join(xyzs_path, mol_file)
