@@ -22,6 +22,7 @@ class tmQM(datatypes.MolecularDataset):
             split: Optional[str] = None,
             start_index: Optional[int] = None,
             end_index: Optional[int] = None,
+            rng_seed: int = 0,
         ):
         super().__init__()
 
@@ -34,10 +35,15 @@ class tmQM(datatypes.MolecularDataset):
         self.split = split
         self.start_index = start_index
         self.end_index = end_index
+        self.rng = np.random.default_rng(rng_seed)
 
     @staticmethod
     def get_atomic_numbers() -> np.ndarray:
         return np.arange(1, 81)
+    
+    @staticmethod
+    def species_to_atomic_numbers() -> Dict[int, int]:
+        return {i: i+1 for i in range(80)}
 
     def preprocess(self):
         self.preprocessed = True
