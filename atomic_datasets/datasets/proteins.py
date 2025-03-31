@@ -1,6 +1,7 @@
 from typing import List, Iterable, Dict, Optional
 
 import os
+import pickle
 import logging
 import warnings
 
@@ -337,6 +338,13 @@ def load_data(
 ) -> List[datatypes.Graph]:
     """Load the dataset."""
 
+    pickle_file = os.path.join(root_dir, dataset + ".pkl")
+    if os.path.isfile(pickle_file):
+        logging.info(f"Loading preprocessed {dataset} dataset.")
+        with open(pickle_file, "rb") as f:
+            all_structures = pickle.load(f)
+        return all_structures
+
     if not os.path.exists(root_dir):
         os.makedirs(root_dir)
 
@@ -444,4 +452,6 @@ def load_data(
                 continue
 
     logging.info(f"Loaded {len(all_structures)} structures.")
+    with open(pickle_file, "wb") as f:
+        pickle.dump(all_structures, f)
     return all_structures
