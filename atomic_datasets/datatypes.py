@@ -18,10 +18,8 @@ class MolecularDataset(abc.ABC):
         """Returns a sorted list of the atomic numbers observed in the dataset."""
 
     @classmethod
-    def species_to_atomic_numbers(cls, species: np.ndarray) -> np.ndarray:
+    def species_to_atomic_numbers(cls) -> np.ndarray:
         """Returns the atomic numbers for the species."""
-        atomic_numbers = cls.get_atomic_numbers()
-        return np.asarray(atomic_numbers)[species]
 
     @classmethod
     def atomic_numbers_to_species(cls, atomic_numbers: np.ndarray) -> np.ndarray:

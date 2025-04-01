@@ -103,6 +103,10 @@ class QM9(datatypes.MolecularDataset):
     @utils.after_preprocess
     def __getitem__(self, idx: int) -> datatypes.Graph:
         return self.all_graphs[idx]
+    
+    @staticmethod
+    def species_to_atomic_numbers() -> Dict[int, int]:
+        return {0: 1, 1: 6, 2: 7, 3: 8, 4: 9}
 
 
 def preprocess_directory(root_dir: str) -> None:
