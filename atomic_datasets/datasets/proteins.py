@@ -1,4 +1,4 @@
-from typing import List, Iterable, Dict, Optional
+from typing import Generator, List, Iterable, Dict, Optional
 
 import os
 import pickle
@@ -42,6 +42,31 @@ def get_amino_acids():
         "TYR",
         "VAL",
     ]
+
+amino_acid_dict = {
+    'ALA': 'A',
+    'ARG': 'R',
+    'ASN': 'N',
+    'ASP': 'D',
+    'CYS': 'C',
+    'GLN': 'Q',
+    'GLU': 'E',
+    'GLY': 'G',
+    'HIS': 'H',
+    'ILE': 'I',
+    'LEU': 'L',
+    'LYS': 'K',
+    'MET': 'M',
+    'PHE': 'F',
+    'PRO': 'P',
+    'PYL': 'O',
+    'SER': 'S',
+    'THR': 'T',
+    'SEC': 'U',
+    'TRP': 'W',
+    'TYR': 'Y',
+    'VAL': 'V',
+}
 
 
 class ProteinsGeneric(datatypes.MolecularDataset):
@@ -143,7 +168,7 @@ class ProteinsAlphaCarbons(ProteinsGeneric):
             self.dataset,
             self.root_dir,
             ProteinsAlphaCarbons.atoms_to_species(),
-            alpha_carbons_only=True,
+            mode="alpha_carbons",
             max_residues=self.max_residues,
         )
     
@@ -191,7 +216,7 @@ class ProteinsBackbone(ProteinsGeneric):
             self.dataset,
             self.root_dir,
             ProteinsBackbone.atoms_to_species(),
-            alpha_carbons_only=False,
+            mode="backbone",
             max_residues=self.max_residues,
         )
     
@@ -206,7 +231,7 @@ class ProteinsBackbone(ProteinsGeneric):
         for i in range(24):
             mapping[i] = 6
         mapping[24] = 7  # N
-        mapping[25] = 7  # X
+        mapping[25] = 7  # X = initial N
         return np.vectorize(mapping.get)(species)
 
     @staticmethod
@@ -218,12 +243,76 @@ class ProteinsBackbone(ProteinsGeneric):
         mapping["C"] = 22
         mapping["CA"] = 23
         mapping["N"] = 24
-        mapping["X"] = 25
+        # mapping["X"] = 25
         return mapping
 
     @staticmethod
     def get_species() -> List[str]:
         return get_amino_acids() + ["C", "CA", "N"]
+
+class ProteinsFull(ProteinsGeneric):
+    def __init__(
+        self,
+        root_dir: str,
+        dataset: str,
+        split: str,
+        start_index: Optional[int] = None,
+        end_index: Optional[int] = None,
+        train_on_single_molecule: Optional[bool] = False,
+        train_on_single_molecule_index: Optional[int] = 0,
+        max_residues: Optional[int] = None,
+    ):
+        super().__init__(
+            root_dir,
+            dataset,
+            split,
+            start_index,
+            end_index,
+            train_on_single_molecule,
+            train_on_single_molecule_index,
+            max_residues,
+        )
+    
+    def load_data(self):
+        return load_data(
+            self.dataset,
+            self.root_dir,
+            ProteinsBackbone.atoms_to_species(),
+            mode="full",
+            max_residues=self.max_residues,
+        )
+    
+    @staticmethod
+    def get_atomic_numbers() -> np.ndarray:
+        return np.asarray([1, 6, 7, 8, 16, 34])
+
+    @classmethod
+    def species_to_atomic_numbers(cls, species: np.ndarray) -> Dict[int, int]:
+        return {
+            0: 1,
+            1: 6,
+            2: 7,
+            3: 8,
+            4: 16,
+            5: 34,
+            6: 7,  # X
+        }
+
+    @staticmethod
+    def atoms_to_species() -> Dict[str, int]:
+        mapping = {}
+        mapping["H"] = 0
+        mapping["C"] = 1
+        mapping["N"] = 2
+        mapping["O"] = 3
+        mapping["S"] = 4
+        mapping["Se"] = 5
+        # mapping["X"] = 6
+        return mapping
+
+    @staticmethod
+    def get_species() -> List[str]:
+        return ["H", "C", "N", "O", "S", "Se"]
 
 class SplitterMixin:
     """Retrieves dataset splits."""
@@ -329,27 +418,79 @@ class MiniproteinsAlphaCarbons(SplitterMixin, ProteinsAlphaCarbons):
             max_residues=max_residues,
         )
 
+class MiniproteinsBackbone(SplitterMixin, ProteinsBackbone):
+    def __init__(
+        self,
+        root_dir: str,
+        split: str,
+        start_index: Optional[int] = None,
+        end_index: Optional[int] = None,
+        train_on_single_molecule: Optional[bool] = False,
+        train_on_single_molecule_index: Optional[int] = 0,
+        max_residues: Optional[int] = None,
+        rng_seed: Optional[int] = 0,
+    ):
+        super().__init__(
+            53446,
+            6681,
+            6681,
+            train_on_single_molecule,
+            train_on_single_molecule_index,
+            rng_seed,
+            root_dir=root_dir,
+            dataset="miniproteins",
+            split=split,
+            start_index=start_index,
+            end_index=end_index,
+            max_residues=max_residues,
+        )
+
+class Miniproteins(SplitterMixin, ProteinsFull):
+    def __init__(
+        self,
+        root_dir: str,
+        split: str,
+        start_index: Optional[int] = None,
+        end_index: Optional[int] = None,
+        train_on_single_molecule: Optional[bool] = False,
+        train_on_single_molecule_index: Optional[int] = 0,
+        max_residues: Optional[int] = None,
+        rng_seed: Optional[int] = 0,
+    ):
+        super().__init__(
+            53446,
+            6681,
+            6681,
+            train_on_single_molecule,
+            train_on_single_molecule_index,
+            rng_seed,
+            root_dir=root_dir,
+            dataset="miniproteins",
+            split=split,
+            start_index=start_index,
+            end_index=end_index,
+            max_residues=max_residues,
+        )
+
 def load_data(
     dataset: str,
     root_dir: str,
     atoms_to_species: Dict[str, int],
-    alpha_carbons_only: bool,
+    mode: str,
     max_residues: Optional[int] = None,
-) -> List[datatypes.Graph]:
+) -> Generator[datatypes.Graph]:
+# ) -> List[datatypes.Graph]:
     """Load the dataset."""
 
-    pickle_file = os.path.join(root_dir, dataset + ".pkl")
-    if os.path.isfile(pickle_file):
-        logging.info(f"Loading preprocessed {dataset} dataset.")
-        with open(pickle_file, "rb") as f:
-            all_structures = pickle.load(f)
-        return all_structures
+    # pickle_file = os.path.join(root_dir, f"{dataset}_{mode}.pkl")
+    # if os.path.isfile(pickle_file):
+    #     logging.info(f"Loading preprocessed {dataset} dataset.")
+    #     with open(pickle_file, "rb") as f:
+    #         all_structures = pickle.load(f)
+    #     return all_structures
 
     if not os.path.exists(root_dir):
         os.makedirs(root_dir)
-
-    if max_residues is None:
-        max_residues = np.inf
 
     # Download raw data.
     if dataset == "cath":
@@ -373,32 +514,33 @@ def load_data(
 
     all_structures = []
 
-    def _add_structure(pos, spec, molfile):
-        assert len(pos) == len(spec), (
-            f"Length mismatch: {len(pos)} vs {len(spec)} in {molfile}"
-        )
+    if max_residues is None:
+        max_residues = np.inf
 
-        pos = np.asarray(pos)
-        spec = np.asarray(spec)
-
+    def _add_structure(positions, species, aa_sequence):
         # Convert to Structure.
         structure = datatypes.Graph(
             nodes=dict(
-                positions=pos,
-                species=spec,
+                positions=np.asarray(positions),
+                species=np.asarray(species),
             ),
             edges=None,
             receivers=None,
             senders=None,
-            globals=None,
-            n_node=np.asarray([len(spec)]),
+            globals=dict(
+                aa_sequence=aa_sequence,
+                num_residues=len(aa_sequence),
+            ),
+            n_node=np.asarray([len(species)]),
             n_edge=None,
         )
-        all_structures.append(structure)
+        # all_structures.append(structure)
+        return structure
 
     logging.info("Loading structures...")
-    for mol_file in mol_files_list:
+    for mol_file in mol_files_list[:10]:
         mol_path = os.path.join(mols_path, mol_file).strip()
+        # print(f"Processing {mol_path}...")
         # read pdb
         f = pdb.PDBFile.read(mol_path)
         try:
@@ -406,52 +548,73 @@ def load_data(
         except:
             print(f"Could not read {mol_path}")
             continue
-        backbone = structure.get_array(0)
-        if alpha_carbons_only:
-            mask = np.isin(backbone.atom_name, ["CA"])
+
+        # filter out non-backbone atoms, if necessary
+        protein = structure.get_array(0)
+        if mode == "alpha_carbons":
+            mask = np.isin(protein.atom_name, ["CA"])
+        elif mode == "backbone":
+            mask = np.isin(protein.atom_name, ["CA", "N", "C", "CB"])
+        elif mode == "full":
+            mask = np.ones(len(protein), dtype=bool)
         else:
-            mask = np.isin(backbone.atom_name, ["CA", "N", "C", "CB"])
-        backbone = backbone[mask]
-        max_len = 5.0 if alpha_carbons_only else 3.0
-        fragment_starts = np.concatenate(
+            raise ValueError(f"Unknown mode: {mode}")
+        protein = protein[mask]
+
+        # get starts of protein chains
+        max_len = 5.0 if mode == "alpha_carbons" else 1.8  # (default 1.8)
+        chain_starts = np.concatenate(
             [
                 np.array([0]),
-                # distance between CB and N is ~2.4 angstroms + some wiggle room
-                struc.check_backbone_continuity(backbone, max_len=max_len),
-                np.array([len(backbone)]),
+                struc.check_backbone_continuity(protein, max_len=max_len),
+                np.array([len(protein)]),
             ]
         )
-        for i in range(len(fragment_starts) - 1):
-            fragment = backbone[fragment_starts[i] : fragment_starts[i + 1]]
+
+        # get processed structures
+        for i in range(len(chain_starts) - 1):
+            chain = protein[chain_starts[i] : chain_starts[i + 1]]
             try:
-                positions = fragment.coord
-                elements = fragment.atom_name
-                if not alpha_carbons_only:
-                    first_n = np.argwhere(elements == "N")[0][0]
-                    elements[first_n] = "X"
-                    # set CB to corresponding residue name
-                    cb_atoms = np.argwhere(fragment.atom_name == "CB").flatten()
-                    elements[cb_atoms] = fragment.res_name[cb_atoms]
+                positions = chain.coord
+                elements = chain.element if mode == "full" else chain.atom_name
+
+                # get initial N of the chain
+                # if mode != "alpha_carbons":
+                #     first_n = np.argwhere(elements == "N")[0][0]
+                #     elements[first_n] = "X"
+                # set CB to corresponding residue name ("backbone" only)
+                if mode == "backbone":
+                    cb_atoms = np.argwhere(chain.atom_name == "CB").flatten()
+                    elements[cb_atoms] = chain.res_name[cb_atoms]
+
                 species = np.vectorize(atoms_to_species.get)(
                     elements
                 )
+
                 # cut down # of residues if necessary
-                residue_starts = struc.get_residue_starts(fragment)
-                residue_starts = np.concatenate([residue_starts, np.array([len(fragment)])])
+                residue_starts = struc.get_residue_starts(chain)
+                residue_starts = np.concatenate([residue_starts, np.array([len(chain)])])
                 if len(residue_starts) - 1 > max_residues:
                     start = np.random.randint(0, len(residue_starts) - max_residues)
                     residue_starts = residue_starts[start : start + max_residues + 1]
-                    start = residue_starts[start] if not alpha_carbons_only else start
-                    end = start + max_residues if alpha_carbons_only else residue_starts[-1]
+                    start = start if mode == "alpha_carbons" else residue_starts[start]
+                    end = start + max_residues if mode == "alpha_carbons" else residue_starts[-1]
                     positions = positions[start : end]
                     species = species[start : end]
                 assert len(positions) >= 5, f"Too few atoms in {mol_file}"
-                _add_structure(positions, species, mol_file)
+
+                yield _add_structure(
+                    positions,
+                    species,
+                    np.vectorize(amino_acid_dict.get)(chain.res_name[residue_starts[:-1]]),
+                )
+
             except Exception as e:
-                # print(e)
+                print(f"Error processing {mol_file}: {e}")
+                print(f"Skipping {mol_file}...")
                 continue
 
     logging.info(f"Loaded {len(all_structures)} structures.")
-    with open(pickle_file, "wb") as f:
-        pickle.dump(all_structures, f)
+    # with open(pickle_file, "wb") as f:
+    #     pickle.dump(all_structures, f)
     return all_structures
