@@ -115,7 +115,7 @@ class ProteinsGeneric(datatypes.MolecularDataset):
         if self.all_graphs is None:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                self.all_graphs = self.load_data()
+                self.all_graphs = list(self.load_data())
         splits = self.split_indices()
         split = splits[self.split]
         if self.start_index is not None:
@@ -478,7 +478,7 @@ def load_data(
     atoms_to_species: Dict[str, int],
     mode: str,
     max_residues: Optional[int] = None,
-) -> Generator[datatypes.Graph]:
+) -> Iterable[datatypes.Graph]:
 # ) -> List[datatypes.Graph]:
     """Load the dataset."""
 
@@ -517,7 +517,7 @@ def load_data(
     if max_residues is None:
         max_residues = np.inf
 
-    def _add_structure(positions, species, aa_sequence):
+    def _add_structure(positions, species, aa_sequence, mol_file):
         # Convert to Structure.
         structure = datatypes.Graph(
             nodes=dict(
@@ -530,6 +530,7 @@ def load_data(
             globals=dict(
                 aa_sequence=aa_sequence,
                 num_residues=len(aa_sequence),
+                file_name=mol_file,
             ),
             n_node=np.asarray([len(species)]),
             n_edge=None,
@@ -538,6 +539,7 @@ def load_data(
         return structure
 
     logging.info("Loading structures...")
+    ct = 0
     for mol_file in mol_files_list[:10]:
         mol_path = os.path.join(mols_path, mol_file).strip()
         # print(f"Processing {mol_path}...")
@@ -607,14 +609,16 @@ def load_data(
                     positions,
                     species,
                     np.vectorize(amino_acid_dict.get)(chain.res_name[residue_starts[:-1]]),
+                    mol_file,
                 )
+                ct += 1
 
             except Exception as e:
                 print(f"Error processing {mol_file}: {e}")
                 print(f"Skipping {mol_file}...")
                 continue
 
-    logging.info(f"Loaded {len(all_structures)} structures.")
+    logging.info(f"Loaded {ct} structures.")
     # with open(pickle_file, "wb") as f:
     #     pickle.dump(all_structures, f)
     return all_structures
