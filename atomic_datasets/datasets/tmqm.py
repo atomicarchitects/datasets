@@ -145,7 +145,7 @@ def load_tmQM(
     """Load the tmQM dataset."""
     get_raw_data(root_dir)
     xyzs_path = os.path.join(root_dir, "xyz")
-    for index, mol_file in tqdm.tqdm(enumerate(sorted(os.listdir(xyzs_path))), desc="Loading tmQM"):
+    for index, mol_file in enumerate(tqdm.tqdm(sorted(os.listdir(xyzs_path)), desc="Loading tmQM")):
         if start_index is not None and index < start_index:
             continue
 

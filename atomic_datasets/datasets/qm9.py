@@ -146,11 +146,11 @@ def load_qm9(
     properties.set_index("mol_id", inplace=True)
 
     for index, mol in enumerate(tqdm.tqdm(supplier, desc="Loading QM9")):
-        if start_index is not None and index < start_index:
-            continue
+        # if start_index is not None and index < start_index:
+        #     continue
 
-        if end_index is not None and index >= end_index:
-            break
+        # if end_index is not None and index >= end_index:
+        #     break
 
         if mol is None:
             raise ValueError("Failed to load molecule.")
