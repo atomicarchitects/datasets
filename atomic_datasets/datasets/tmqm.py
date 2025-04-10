@@ -17,13 +17,15 @@ class tmQM(datatypes.MolecularDataset):
     """TMQM dataset."""
 
     def __init__(
-            self,
-            root_dir: str,
-            split: Optional[str] = None,
-            start_index: Optional[int] = None,
-            end_index: Optional[int] = None,
-            rng_seed: int = 0,
-        ):
+        self,
+        root_dir: str,
+        split: Optional[str] = None,
+        start_index: Optional[int] = None,
+        end_index: Optional[int] = None,
+        rng_seed: int = 0,
+        train_on_single_molecule: Optional[bool] = False,
+        train_on_single_molecule_index: Optional[int] = 0,
+    ):
         super().__init__()
 
         if root_dir is None:
@@ -36,6 +38,8 @@ class tmQM(datatypes.MolecularDataset):
         self.start_index = start_index
         self.end_index = end_index
         self.rng = np.random.default_rng(rng_seed)
+        self.train_on_single_molecule = train_on_single_molecule
+        self.train_on_single_molecule_index = train_on_single_molecule_index
 
     @staticmethod
     def get_atomic_numbers() -> np.ndarray:
@@ -47,7 +51,11 @@ class tmQM(datatypes.MolecularDataset):
 
     def preprocess(self):
         self.preprocessed = True
-        self.all_graphs = list(load_tmQM(self.root_dir))
+        self.all_graphs = list(
+            load_tmQM(
+                self.root_dir,
+            )
+        )
         splits = self.split_indices()
         split = splits[self.split]
         if self.start_index is not None:
@@ -58,12 +66,12 @@ class tmQM(datatypes.MolecularDataset):
     
     def split_indices(self) -> Dict[str, np.ndarray]:
         """Return a dictionary of indices for each split."""
-        # if self.train_on_single_molecule:
-        #     return {
-        #         "train": [self.train_on_single_molecule_index],
-        #         "val": [self.train_on_single_molecule_index],
-        #         "test": [self.train_on_single_molecule_index],
-        #     }
+        if self.train_on_single_molecule:
+            return {
+                "train": [self.train_on_single_molecule_index],
+                "val": [self.train_on_single_molecule_index],
+                "test": [self.train_on_single_molecule_index],
+            }
 
         num_train_molecules = 69000
         num_val_molecules = 9000
@@ -129,11 +137,21 @@ def get_raw_data(root_dir: str):
                     f.write(xyz)
 
 
-def load_tmQM(root_dir: str) -> Iterable[datatypes.Graph]:
+def load_tmQM(
+        root_dir: str,
+        start_index: Optional[int] = None,
+        end_index: Optional[int] = None,
+    ) -> Iterable[datatypes.Graph]:
     """Load the tmQM dataset."""
     get_raw_data(root_dir)
     xyzs_path = os.path.join(root_dir, "xyz")
-    for mol_file in tqdm.tqdm(sorted(os.listdir(xyzs_path)), desc="Loading tmQM"):
+    for index, mol_file in enumerate(tqdm.tqdm(sorted(os.listdir(xyzs_path)), desc="Loading tmQM")):
+        if start_index is not None and index < start_index:
+            continue
+
+        if end_index is not None and index >= end_index:
+            break
+
         mol_file = os.path.join(xyzs_path, mol_file)
         mol_as_ase = ase.io.read(mol_file, format="xyz")
         if mol_as_ase is None:

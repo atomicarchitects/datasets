@@ -27,6 +27,8 @@ class QM9(datatypes.MolecularDataset):
         check_with_rdkit: bool = False,
         start_index: Optional[int] = None,
         end_index: Optional[int] = None,
+        train_on_single_molecule: Optional[bool] = False,
+        train_on_single_molecule_index: Optional[int] = 0,
     ):
         super().__init__()
 
@@ -72,6 +74,9 @@ class QM9(datatypes.MolecularDataset):
             print("Dataset description:", f.read())
 
         if not self.use_Anderson_splits:
+            if self.train_on_single_molecule:
+                self.start_index = self.train_on_single_molecule_index
+                self.end_index = self.train_on_single_molecule_index + 1
             self.all_graphs = list(
                 load_qm9(
                     self.root_dir,
@@ -141,11 +146,11 @@ def load_qm9(
     properties.set_index("mol_id", inplace=True)
 
     for index, mol in enumerate(tqdm.tqdm(supplier, desc="Loading QM9")):
-        if start_index is not None and index < start_index:
-            continue
+        # if start_index is not None and index < start_index:
+        #     continue
 
-        if end_index is not None and index >= end_index:
-            break
+        # if end_index is not None and index >= end_index:
+        #     break
 
         if mol is None:
             raise ValueError("Failed to load molecule.")
