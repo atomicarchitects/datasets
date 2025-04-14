@@ -44,10 +44,10 @@ class tmQM(datatypes.MolecularDataset):
     @staticmethod
     def get_atomic_numbers() -> np.ndarray:
         return np.arange(1, 81)
-    
+
     @staticmethod
     def species_to_atomic_numbers() -> Dict[int, int]:
-        return {i: i+1 for i in range(80)}
+        return {i: i + 1 for i in range(80)}
 
     def preprocess(self):
         self.preprocessed = True
@@ -63,7 +63,7 @@ class tmQM(datatypes.MolecularDataset):
         if self.end_index is not None:
             split = split[: self.end_index]
         self.all_graphs = [self.all_graphs[i] for i in split]
-    
+
     def split_indices(self) -> Dict[str, np.ndarray]:
         """Return a dictionary of indices for each split."""
         if self.train_on_single_molecule:
@@ -138,14 +138,16 @@ def get_raw_data(root_dir: str):
 
 
 def load_tmQM(
-        root_dir: str,
-        start_index: Optional[int] = None,
-        end_index: Optional[int] = None,
-    ) -> Iterable[datatypes.Graph]:
+    root_dir: str,
+    start_index: Optional[int] = None,
+    end_index: Optional[int] = None,
+) -> Iterable[datatypes.Graph]:
     """Load the tmQM dataset."""
     get_raw_data(root_dir)
     xyzs_path = os.path.join(root_dir, "xyz")
-    for index, mol_file in enumerate(tqdm.tqdm(sorted(os.listdir(xyzs_path)), desc="Loading tmQM")):
+    for index, mol_file in enumerate(
+        tqdm.tqdm(sorted(os.listdir(xyzs_path)), desc="Loading tmQM")
+    ):
         if start_index is not None and index < start_index:
             continue
 
