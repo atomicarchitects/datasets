@@ -225,16 +225,16 @@ class ProteinsBackbone(ProteinsGeneric):
 
     @staticmethod
     def get_atomic_numbers() -> np.ndarray:
-        return np.asarray([6, 7])  # representing residues by their CB atoms
+        return np.asarray([0]*22 + [6, 7, 7])
 
     @staticmethod
     def species_to_atomic_numbers() -> Dict[int, int]:
         mapping = {}
         # C first, then CA, then amino acids
-        for i in range(24):
+        for i in range(23):
             mapping[i] = 6
-        mapping[24] = 7  # N
-        mapping[25] = 7  # X = initial N
+        mapping[23] = 7  # N
+        mapping[24] = 7  # X = initial N
         return mapping
 
     @staticmethod
@@ -417,7 +417,7 @@ class MiniproteinsAlphaCarbons(SplitterMixin, ProteinsAlphaCarbons):
         rng_seed: Optional[int] = 0,
     ):
         super().__init__(
-            num_train_molecules=53446,
+            num_train_molecules=53445,
             num_val_molecules=6681,
             num_test_molecules=6681,
             train_on_single_molecule=train_on_single_molecule,
@@ -445,7 +445,7 @@ class MiniproteinsBackbone(SplitterMixin, ProteinsBackbone):
         rng_seed: Optional[int] = 0,
     ):
         super().__init__(
-            num_train_molecules=53446,
+            num_train_molecules=53445,
             num_val_molecules=6681,
             num_test_molecules=6681,
             train_on_single_molecule=train_on_single_molecule,
@@ -497,12 +497,13 @@ def load_data(
 ) -> Iterable[datatypes.Graph]:
     """Load the dataset."""
 
-    # pickle_file = os.path.join(root_dir, f"{dataset}_{mode}.pkl")
-    # if os.path.isfile(pickle_file):
-    #     logging.info(f"Loading preprocessed {dataset} dataset.")
-    #     with open(pickle_file, "rb") as f:
-    #         all_structures = pickle.load(f)
-    #     return all_structures
+    pickle_file = os.path.join(root_dir, f"{dataset}_{mode}_maxlength_{max_residues}.pkl")
+    if os.path.isfile(pickle_file):
+        logging.info(f"Loading preprocessed {dataset} dataset.")
+        with open(pickle_file, "rb") as f:
+            all_structures = pickle.load(f)
+        logging.info(f"Loaded {len(all_structures)} structures.")
+        return all_structures
 
     if not os.path.exists(root_dir):
         os.makedirs(root_dir)
@@ -550,12 +551,12 @@ def load_data(
             n_node=np.asarray([len(species)]),
             n_edge=None,
         )
-        # all_structures.append(structure)
+        all_structures.append(structure)
         return structure
 
     logging.info("Loading structures...")
     ct = 0
-    for mol_file in mol_files_list[:10]:
+    for mol_file in mol_files_list:
         mol_path = os.path.join(mols_path, mol_file).strip()
         # print(f"Processing {mol_path}...")
         # read pdb
@@ -611,9 +612,9 @@ def load_data(
                 residue_starts = np.concatenate(
                     [residue_starts, np.array([len(chain)])]
                 )
-                if len(residue_starts) - 1 > max_residues:
-                    start = np.random.randint(0, len(residue_starts) - max_residues)
-                    residue_starts = residue_starts[start : start + max_residues + 1]
+                end_ndx = len(residue_starts) - max_residues
+                if end_ndx >= 1:
+                    start = np.random.default_rng().integers(end_ndx)
                     start = start if mode == "alpha_carbons" else residue_starts[start]
                     end = (
                         start + max_residues
@@ -624,7 +625,7 @@ def load_data(
                     species = species[start:end]
                 assert len(positions) >= 5, f"Too few atoms in {mol_file}"
 
-                yield _add_structure(
+                _add_structure(
                     positions,
                     species,
                     np.vectorize(amino_acid_dict.get)(
@@ -640,6 +641,6 @@ def load_data(
                 continue
 
     logging.info(f"Loaded {ct} structures.")
-    # with open(pickle_file, "wb") as f:
-    #     pickle.dump(all_structures, f)
+    with open(pickle_file, "wb") as f:
+        pickle.dump(all_structures, f)
     return all_structures
