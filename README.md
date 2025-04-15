@@ -31,8 +31,8 @@ dataset = QM9Dataset(
 )
 
 for graph in dataset:
-	# graph is a dictionary.
-	print(graph["nodes"], graph["properties"])
+    # graph is a dictionary.
+    print(graph["nodes"], graph["properties"])
 ```
 
 ## Citation
