@@ -17,7 +17,7 @@ QM9_URL = (
 
 
 class QM9(datatypes.MolecularDataset):
-    """QM9 dataset."""
+    """The QM9 dataset from https://www.nature.com/articles/sdata201422."""
 
     def __init__(
         self,
@@ -43,6 +43,8 @@ class QM9(datatypes.MolecularDataset):
         self.end_index = end_index
         self.all_graphs = None
         self.preprocessed = False
+        self.train_on_single_molecule = train_on_single_molecule
+        self.train_on_single_molecule_index = train_on_single_molecule_index
 
         if self.use_Anderson_splits:
             if self.split is None:
@@ -60,15 +62,18 @@ class QM9(datatypes.MolecularDataset):
                     "When use_Anderson_splits is True, start_index and end_index refer to the indices of the Anderson splits."
                 )
 
-    @staticmethod
-    def get_atomic_numbers() -> np.ndarray:
+    @classmethod
+    def atom_types(cls) -> np.ndarray:
+        return utils.atomic_numbers_to_symbols(cls.get_atomic_numbers())
+
+    @classmethod
+    def get_atomic_numbers(cls) -> np.ndarray:
         return np.asarray([1, 6, 7, 8, 9])
 
     def preprocess(self):
         self.preprocessed = True
 
         preprocess_directory(self.root_dir)
-
         README = os.path.join(self.root_dir, "QM9_README")
         with open(README) as f:
             print("Dataset description:", f.read())
@@ -77,6 +82,7 @@ class QM9(datatypes.MolecularDataset):
             if self.train_on_single_molecule:
                 self.start_index = self.train_on_single_molecule_index
                 self.end_index = self.train_on_single_molecule_index + 1
+
             self.all_graphs = list(
                 load_qm9(
                     self.root_dir,
@@ -109,8 +115,8 @@ class QM9(datatypes.MolecularDataset):
     def __getitem__(self, idx: int) -> datatypes.Graph:
         return self.all_graphs[idx]
 
-    @staticmethod
-    def species_to_atomic_numbers() -> Dict[int, int]:
+    @classmethod
+    def species_to_atomic_numbers(cls) -> Dict[int, int]:
         return {0: 1, 1: 6, 2: 7, 3: 8, 4: 9}
 
 
@@ -146,11 +152,11 @@ def load_qm9(
     properties.set_index("mol_id", inplace=True)
 
     for index, mol in enumerate(tqdm.tqdm(supplier, desc="Loading QM9")):
-        # if start_index is not None and index < start_index:
-        #     continue
+        if start_index is not None and index < start_index:
+            continue
 
-        # if end_index is not None and index >= end_index:
-        #     break
+        if end_index is not None and index >= end_index:
+            break
 
         if mol is None:
             raise ValueError("Failed to load molecule.")
@@ -169,6 +175,7 @@ def load_qm9(
             nodes=dict(
                 positions=np.asarray(mol.GetConformer().GetPositions()),
                 species=QM9.atomic_numbers_to_species(atomic_numbers),
+                atom_types=utils.atomic_numbers_to_symbols(atomic_numbers),
             ),
             edges=None,
             receivers=None,

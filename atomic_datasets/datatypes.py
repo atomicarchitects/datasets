@@ -1,4 +1,4 @@
-from typing import Dict, Iterable, Sequence, Union
+from typing import Dict, Iterable, Sequence, Any
 import abc
 
 import numpy as np
@@ -12,6 +12,10 @@ class MolecularDataset(abc.ABC):
     def num_species(self) -> int:
         """Return the number of atom types."""
         return len(self.get_atomic_numbers())
+
+    @abc.abstractmethod
+    def atom_types(self) -> Sequence[str]:
+        """Return all possible atom types."""
 
     @abc.abstractmethod
     def get_atomic_numbers(self) -> Sequence[int]:
