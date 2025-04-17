@@ -473,7 +473,7 @@ class Miniproteins(SplitterMixin, ProteinsFull):
         rng_seed: Optional[int] = 0,
     ):
         super().__init__(
-            num_train_molecules=53446,
+            num_train_molecules=53445,
             num_val_molecules=6681,
             num_test_molecules=6681,
             train_on_single_molecule=train_on_single_molecule,
