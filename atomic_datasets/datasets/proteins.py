@@ -77,7 +77,8 @@ class ProteinsGeneric(datatypes.MolecularDataset):
         self,
         root_dir: str,
         dataset: str,
-        split: str,
+        split: Optional[str] = None,
+        use_random_splits: bool = True,
         start_index: Optional[int] = None,
         end_index: Optional[int] = None,
         train_on_single_molecule: Optional[bool] = False,
@@ -90,10 +91,24 @@ class ProteinsGeneric(datatypes.MolecularDataset):
             raise ValueError("root_dir must be provided.")
 
         self.root_dir = root_dir
+        self.use_random_splits = use_random_splits
+        self.start_index = start_index
+        self.end_index = end_index
         self.split = split
         self.train_on_single_molecule = train_on_single_molecule
         self.preprocessed = False
         self.max_residues = max_residues
+
+        if self.use_random_splits:
+            if self.split is None:
+                raise ValueError(
+                    "When use_random_splits is True, split must be provided."
+                )
+
+            if self.start_index is not None or self.end_index is not None:
+                logging.warning(
+                    "When use_random_splits is True, start_index and end_index refer to the indices of the random splits."
+                )
 
         if self.train_on_single_molecule:
             logging.info(
@@ -113,10 +128,16 @@ class ProteinsGeneric(datatypes.MolecularDataset):
 
     def preprocess(self):
         self.preprocessed = True
-        if self.all_graphs is None:
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            
+            if self.all_graphs is None:
                 self.all_graphs = list(self.load_data())
+
+        if self.split is None:
+            return
+
         splits = self.split_indices()
         split = splits[self.split]
         if self.start_index is not None:
@@ -143,35 +164,17 @@ class ProteinsGeneric(datatypes.MolecularDataset):
 
 
 class ProteinsAlphaCarbons(ProteinsGeneric):
-    def __init__(
-        self,
-        root_dir: str,
-        dataset: str,
-        split: str,
-        start_index: Optional[int] = None,
-        end_index: Optional[int] = None,
-        train_on_single_molecule: Optional[bool] = False,
-        train_on_single_molecule_index: Optional[int] = 0,
-        max_residues: Optional[int] = None,
-    ):
-        super().__init__(
-            root_dir,
-            dataset,
-            split,
-            start_index,
-            end_index,
-            train_on_single_molecule,
-            train_on_single_molecule_index,
-            max_residues,
-        )
-
+    
     def load_data(self):
         return load_data(
             self.dataset,
             self.root_dir,
             ProteinsAlphaCarbons.atoms_to_species(),
             mode="alpha_carbons",
+            use_random_splits=self.use_random_splits,
             max_residues=self.max_residues,
+            start_index=self.start_index,
+            end_index=self.end_index,
         )
 
     @classmethod
@@ -196,35 +199,17 @@ class ProteinsAlphaCarbons(ProteinsGeneric):
 
 
 class ProteinsBackbone(ProteinsGeneric):
-    def __init__(
-        self,
-        root_dir: str,
-        dataset: str,
-        split: str,
-        start_index: Optional[int] = None,
-        end_index: Optional[int] = None,
-        train_on_single_molecule: Optional[bool] = False,
-        train_on_single_molecule_index: Optional[int] = 0,
-        max_residues: Optional[int] = None,
-    ):
-        super().__init__(
-            root_dir,
-            dataset,
-            split,
-            start_index,
-            end_index,
-            train_on_single_molecule,
-            train_on_single_molecule_index,
-            max_residues,
-        )
-
+    
     def load_data(self):
         return load_data(
             self.dataset,
             self.root_dir,
             ProteinsBackbone.atoms_to_species(),
             mode="backbone",
+            use_random_splits=self.use_random_splits,
             max_residues=self.max_residues,
+            start_index=self.start_index,
+            end_index=self.end_index,
         )
 
     @classmethod
@@ -263,35 +248,17 @@ class ProteinsBackbone(ProteinsGeneric):
 
 
 class ProteinsFull(ProteinsGeneric):
-    def __init__(
-        self,
-        root_dir: str,
-        dataset: str,
-        split: str,
-        start_index: Optional[int] = None,
-        end_index: Optional[int] = None,
-        train_on_single_molecule: Optional[bool] = False,
-        train_on_single_molecule_index: Optional[int] = 0,
-        max_residues: Optional[int] = None,
-    ):
-        super().__init__(
-            root_dir,
-            dataset,
-            split,
-            start_index,
-            end_index,
-            train_on_single_molecule,
-            train_on_single_molecule_index,
-            max_residues,
-        )
-
+    
     def load_data(self):
         return load_data(
             self.dataset,
             self.root_dir,
             ProteinsBackbone.atoms_to_species(),
             mode="full",
+            use_random_splits=self.use_random_splits,
             max_residues=self.max_residues,
+            start_index=self.start_index,
+            end_index=self.end_index,
         )
 
     @classmethod
@@ -339,8 +306,8 @@ class SplitterMixin:
         num_train_molecules: int,
         num_val_molecules: int,
         num_test_molecules: int,
-        train_on_single_molecule: bool,
-        train_on_single_molecule_index: int,
+        train_on_single_molecule: bool = False,
+        train_on_single_molecule_index: Optional[int] = 0,
         rng_seed: Optional[int] = 0,
         **kwargs,
     ):
@@ -387,30 +354,18 @@ class CATHAlphaCarbons(SplitterMixin, ProteinsAlphaCarbons):
 
     def __init__(
         self,
-        root_dir: str,
-        split: str,
-        start_index: Optional[int] = None,
-        end_index: Optional[int] = None,
-        train_on_single_molecule: Optional[bool] = False,
-        train_on_single_molecule_index: Optional[int] = 0,
-        max_residues: Optional[int] = None,
         rng_seed: Optional[
             int
         ] = 6489,  # Taken from FoldingDiff: https://github.com/microsoft/foldingdiff
+        **kwargs,
     ):
         super().__init__(
             num_train_molecules=16793,
             num_val_molecules=2100,
             num_test_molecules=2099,
-            train_on_single_molecule=train_on_single_molecule,
-            train_on_single_molecule_index=train_on_single_molecule_index,
-            rng_seed=rng_seed,
-            root_dir=root_dir,
             dataset="cath",
-            split=split,
-            start_index=start_index,
-            end_index=end_index,
-            max_residues=max_residues,
+            rng_seed=rng_seed,
+            **kwargs,
         )
 
 
@@ -419,28 +374,14 @@ class MiniproteinsAlphaCarbons(SplitterMixin, ProteinsAlphaCarbons):
 
     def __init__(
         self,
-        root_dir: str,
-        split: str,
-        start_index: Optional[int] = None,
-        end_index: Optional[int] = None,
-        train_on_single_molecule: Optional[bool] = False,
-        train_on_single_molecule_index: Optional[int] = 0,
-        max_residues: Optional[int] = None,
-        rng_seed: Optional[int] = 0,
+        **kwargs,
     ):
         super().__init__(
             num_train_molecules=53445,
             num_val_molecules=6681,
             num_test_molecules=6681,
-            train_on_single_molecule=train_on_single_molecule,
-            train_on_single_molecule_index=train_on_single_molecule_index,
-            rng_seed=rng_seed,
-            root_dir=root_dir,
             dataset="miniproteins",
-            split=split,
-            start_index=start_index,
-            end_index=end_index,
-            max_residues=max_residues,
+            **kwargs,
         )
 
 
@@ -449,28 +390,14 @@ class MiniproteinsBackbone(SplitterMixin, ProteinsBackbone):
 
     def __init__(
         self,
-        root_dir: str,
-        split: str,
-        start_index: Optional[int] = None,
-        end_index: Optional[int] = None,
-        train_on_single_molecule: Optional[bool] = False,
-        train_on_single_molecule_index: Optional[int] = 0,
-        max_residues: Optional[int] = None,
-        rng_seed: Optional[int] = 0,
+        **kwargs,
     ):
         super().__init__(
             num_train_molecules=53445,
             num_val_molecules=6681,
             num_test_molecules=6681,
-            train_on_single_molecule=train_on_single_molecule,
-            train_on_single_molecule_index=train_on_single_molecule_index,
-            rng_seed=rng_seed,
-            root_dir=root_dir,
             dataset="miniproteins",
-            split=split,
-            start_index=start_index,
-            end_index=end_index,
-            max_residues=max_residues,
+            **kwargs,
         )
 
 
@@ -479,28 +406,14 @@ class Miniproteins(SplitterMixin, ProteinsFull):
 
     def __init__(
         self,
-        root_dir: str,
-        split: str,
-        start_index: Optional[int] = None,
-        end_index: Optional[int] = None,
-        train_on_single_molecule: Optional[bool] = False,
-        train_on_single_molecule_index: Optional[int] = 0,
-        max_residues: Optional[int] = None,
-        rng_seed: Optional[int] = 0,
+        **kwargs,
     ):
         super().__init__(
             num_train_molecules=53446,
             num_val_molecules=6681,
             num_test_molecules=6681,
-            train_on_single_molecule=train_on_single_molecule,
-            train_on_single_molecule_index=train_on_single_molecule_index,
-            rng_seed=rng_seed,
-            root_dir=root_dir,
             dataset="miniproteins",
-            split=split,
-            start_index=start_index,
-            end_index=end_index,
-            max_residues=max_residues,
+            **kwargs,
         )
 
 
@@ -535,12 +448,19 @@ def load_data(
     root_dir: str,
     atoms_to_species: Dict[str, int],
     mode: str,
+    use_random_splits: bool,
     max_residues: Optional[int] = None,
+    start_index: Optional[int] = None,
+    end_index: Optional[int] = None,
 ) -> Iterable[datatypes.Graph]:
     """Load the dataset."""
 
+    if use_random_splits:
+        start_index = None
+        end_index = None
+    
     pickle_file = os.path.join(
-        root_dir, f"{dataset}_{mode}_maxlength_{max_residues}.pkl"
+        root_dir, f"{dataset}_{mode}_maxlength={max_residues}_start={start_index}_end={end_index}.pkl"
     )
     if os.path.isfile(pickle_file):
         logging.info(f"Loading preprocessed {dataset} dataset.")
@@ -579,7 +499,15 @@ def load_data(
 
     logging.info("Loading structures...")
     count = 0
-    for mol_file in mol_files_list:
+    for index, mol_file in enumerate(
+        sorted(mol_files_list),
+    ):
+        if start_index is not None and index < start_index:
+            continue
+
+        if end_index is not None and index >= end_index:
+            break
+
         mol_path = os.path.join(mols_path, mol_file).strip()
         # print(f"Processing {mol_path}...")
         # read pdb
