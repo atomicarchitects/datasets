@@ -174,20 +174,24 @@ class ProteinsAlphaCarbons(ProteinsGeneric):
             max_residues=self.max_residues,
         )
 
-    @staticmethod
-    def get_atomic_numbers() -> np.ndarray:
+    @classmethod
+    def atom_types(cls) -> np.ndarray:
+        return cls.get_species()
+
+    @classmethod
+    def get_atomic_numbers(cls) -> np.ndarray:
         return np.asarray([6])
 
-    @staticmethod
-    def species_to_atomic_numbers() -> Dict[int, int]:
+    @classmethod
+    def species_to_atomic_numbers(cls) -> Dict[int, int]:
         return {0: 6}
 
-    @staticmethod
-    def atoms_to_species() -> Dict[str, int]:
+    @classmethod
+    def atoms_to_species(cls) -> Dict[str, int]:
         return {"CA": 0}
 
-    @staticmethod
-    def get_species() -> List[str]:
+    @classmethod
+    def get_species(cls) -> List[str]:
         return ["CA"]
 
 
@@ -223,12 +227,16 @@ class ProteinsBackbone(ProteinsGeneric):
             max_residues=self.max_residues,
         )
 
-    @staticmethod
-    def get_atomic_numbers() -> np.ndarray:
-        return np.asarray([0]*22 + [6, 7, 7])
+    @classmethod
+    def atom_types(cls) -> np.ndarray:
+        return cls.get_species()
 
-    @staticmethod
-    def species_to_atomic_numbers() -> Dict[int, int]:
+    @classmethod
+    def get_atomic_numbers(cls) -> np.ndarray:
+        return np.asarray([0] * 22 + [6, 7, 7])
+
+    @classmethod
+    def species_to_atomic_numbers(cls) -> Dict[int, int]:
         mapping = {}
         # C first, then CA, then amino acids
         for i in range(23):
@@ -237,8 +245,8 @@ class ProteinsBackbone(ProteinsGeneric):
         mapping[24] = 7  # X = initial N
         return mapping
 
-    @staticmethod
-    def atoms_to_species() -> Dict[str, int]:
+    @classmethod
+    def atoms_to_species(cls) -> Dict[str, int]:
         mapping = {}
         amino_acid_abbr = get_amino_acids()
         for i, aa in enumerate(amino_acid_abbr):
@@ -249,8 +257,8 @@ class ProteinsBackbone(ProteinsGeneric):
         # mapping["X"] = 25
         return mapping
 
-    @staticmethod
-    def get_species() -> List[str]:
+    @classmethod
+    def get_species(cls) -> List[str]:
         return get_amino_acids() + ["C", "CA", "N"]
 
 
@@ -286,12 +294,16 @@ class ProteinsFull(ProteinsGeneric):
             max_residues=self.max_residues,
         )
 
-    @staticmethod
+    @classmethod
+    def atom_types(cls) -> np.ndarray:
+        return cls.get_species()
+
+    @classmethod
     def get_atomic_numbers() -> np.ndarray:
         return np.asarray([1, 6, 7, 8, 16, 34])
 
     @classmethod
-    def species_to_atomic_numbers(cls, species: np.ndarray) -> Dict[int, int]:
+    def species_to_atomic_numbers(cls) -> Dict[int, int]:
         return {
             0: 1,
             1: 6,
@@ -302,7 +314,7 @@ class ProteinsFull(ProteinsGeneric):
             6: 7,  # X
         }
 
-    @staticmethod
+    @classmethod
     def atoms_to_species() -> Dict[str, int]:
         mapping = {}
         mapping["H"] = 0
@@ -314,7 +326,7 @@ class ProteinsFull(ProteinsGeneric):
         # mapping["X"] = 6
         return mapping
 
-    @staticmethod
+    @classmethod
     def get_species() -> List[str]:
         return ["H", "C", "N", "O", "S", "Se"]
 
@@ -403,7 +415,7 @@ class CATHAlphaCarbons(SplitterMixin, ProteinsAlphaCarbons):
 
 
 class MiniproteinsAlphaCarbons(SplitterMixin, ProteinsAlphaCarbons):
-    """Dataset of miniproteins."""
+    """Dataset of miniproteins with alpha carbons only."""
 
     def __init__(
         self,
@@ -433,6 +445,8 @@ class MiniproteinsAlphaCarbons(SplitterMixin, ProteinsAlphaCarbons):
 
 
 class MiniproteinsBackbone(SplitterMixin, ProteinsBackbone):
+    """Dataset of miniproteins with backbone atoms only."""
+
     def __init__(
         self,
         root_dir: str,
@@ -461,6 +475,8 @@ class MiniproteinsBackbone(SplitterMixin, ProteinsBackbone):
 
 
 class Miniproteins(SplitterMixin, ProteinsFull):
+    """Dataset of miniproteins."""
+
     def __init__(
         self,
         root_dir: str,
@@ -488,6 +504,32 @@ class Miniproteins(SplitterMixin, ProteinsFull):
         )
 
 
+def create_structure(
+    positions: np.ndarray,
+    species: np.ndarray,
+    elements: np.ndarray,
+    aa_sequence: str,
+    mol_file: str,
+) -> datatypes.Graph:
+    return datatypes.Graph(
+        nodes=dict(
+            positions=np.asarray(positions),
+            species=np.asarray(species),
+            atom_types=np.asarray(elements),
+        ),
+        edges=None,
+        receivers=None,
+        senders=None,
+        globals=dict(
+            aa_sequence=aa_sequence,
+            num_residues=len(aa_sequence),
+            file_name=mol_file,
+        ),
+        n_node=np.asarray([len(species)]),
+        n_edge=None,
+    )
+
+
 def load_data(
     dataset: str,
     root_dir: str,
@@ -497,7 +539,9 @@ def load_data(
 ) -> Iterable[datatypes.Graph]:
     """Load the dataset."""
 
-    pickle_file = os.path.join(root_dir, f"{dataset}_{mode}_maxlength_{max_residues}.pkl")
+    pickle_file = os.path.join(
+        root_dir, f"{dataset}_{mode}_maxlength_{max_residues}.pkl"
+    )
     if os.path.isfile(pickle_file):
         logging.info(f"Loading preprocessed {dataset} dataset.")
         with open(pickle_file, "rb") as f:
@@ -533,29 +577,8 @@ def load_data(
     if max_residues is None:
         max_residues = np.inf
 
-    def _add_structure(positions, species, aa_sequence, mol_file):
-        # Convert to Structure.
-        structure = datatypes.Graph(
-            nodes=dict(
-                positions=np.asarray(positions),
-                species=np.asarray(species),
-            ),
-            edges=None,
-            receivers=None,
-            senders=None,
-            globals=dict(
-                aa_sequence=aa_sequence,
-                num_residues=len(aa_sequence),
-                file_name=mol_file,
-            ),
-            n_node=np.asarray([len(species)]),
-            n_edge=None,
-        )
-        all_structures.append(structure)
-        return structure
-
     logging.info("Loading structures...")
-    ct = 0
+    count = 0
     for mol_file in mol_files_list:
         mol_path = os.path.join(mols_path, mol_file).strip()
         # print(f"Processing {mol_path}...")
@@ -594,13 +617,17 @@ def load_data(
             chain = protein[chain_starts[i] : chain_starts[i + 1]]
             try:
                 positions = chain.coord
-                elements = chain.element if mode == "full" else chain.atom_name
+                if mode == "full":
+                    elements = chain.element
+                else:
+                    elements = chain.atom_name
 
-                # get initial N of the chain
+                # Get initial N of the chain
                 # if mode != "alpha_carbons":
                 #     first_n = np.argwhere(elements == "N")[0][0]
                 #     elements[first_n] = "X"
-                # set CB to corresponding residue name ("backbone" only)
+
+                # Set CB to corresponding residue name ("backbone" only)
                 if mode == "backbone":
                     cb_atoms = np.argwhere(chain.atom_name == "CB").flatten()
                     elements[cb_atoms] = chain.res_name[cb_atoms]
@@ -615,32 +642,38 @@ def load_data(
                 end_ndx = len(residue_starts) - max_residues
                 if end_ndx >= 1:
                     start = np.random.default_rng().integers(end_ndx)
-                    start = start if mode == "alpha_carbons" else residue_starts[start]
-                    end = (
-                        start + max_residues
-                        if mode == "alpha_carbons"
-                        else residue_starts[-1]
-                    )
+
+                    if mode == "alpha_carbons":
+                        end = start + max_residues
+                    else:
+                        start = residue_starts[start]
+                        end = residue_starts[-1]
+
                     positions = positions[start:end]
                     species = species[start:end]
+                    elements = elements[start:end]
+
                 assert len(positions) >= 5, f"Too few atoms in {mol_file}"
 
-                _add_structure(
+                aa_sequence = np.vectorize(amino_acid_dict.get)(
+                    chain.res_name[residue_starts[:-1]]
+                )
+                structure = create_structure(
                     positions,
                     species,
-                    np.vectorize(amino_acid_dict.get)(
-                        chain.res_name[residue_starts[:-1]]
-                    ),
+                    elements,
+                    aa_sequence,
                     mol_file,
                 )
-                ct += 1
+                all_structures.append(structure)
+                count += 1
 
             except Exception as e:
                 print(f"Error processing {mol_file}: {e}")
                 print(f"Skipping {mol_file}...")
                 continue
 
-    logging.info(f"Loaded {ct} structures.")
+    logging.info(f"Loaded {count} structures.")
     with open(pickle_file, "wb") as f:
         pickle.dump(all_structures, f)
     return all_structures

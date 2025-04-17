@@ -23,9 +23,9 @@ uv pip install git+https://github.com/atomicarchitects/datasets
 
 ## Example
 ```python
-from atomic_datasets import QM9Dataset
+from atomic_datasets import QM9
 
-dataset = QM9Dataset(
+dataset = QM9(
     root_dir="data/qm9",
     check_with_rdkit=True,
 )

@@ -13,7 +13,7 @@ GEOM_DRUGS_URL = r"https://zenodo.org/records/7881981/files/EDM.tar.gz"
 
 
 class GEOMDrugs(datatypes.MolecularDataset):
-    """GEOM (Drugs) dataset."""
+    """The GEOM (Drugs) dataset from https://www.nature.com/articles/s41597-022-01288-4."""
 
     def __init__(
         self,
@@ -44,8 +44,12 @@ class GEOMDrugs(datatypes.MolecularDataset):
                     "When use_GCDM_splits is True, start_index and end_index refer to the indices of the GCDM splits."
                 )
 
-    @staticmethod
-    def get_atomic_numbers() -> np.ndarray:
+    @classmethod
+    def atom_types(cls) -> np.ndarray:
+        return utils.atomic_numbers_to_symbols(cls.get_atomic_numbers())
+
+    @classmethod
+    def get_atomic_numbers(cls) -> np.ndarray:
         return np.asarray([1, 5, 6, 7, 8, 9, 13, 14, 15, 16, 17, 33, 35, 53, 80, 83])
 
     def preprocess(self):
@@ -122,17 +126,22 @@ def load_GEOM_drugs(
         if end_index is not None and index >= end_index:
             break
 
-        atom_types = datum[:, 0].astype(int)
+        atomic_numbers = datum[:, 0].astype(int)
         atom_positions = datum[:, 1:].astype(float)
-        species = GEOMDrugs.atomic_numbers_to_species(atom_types)
+        species = GEOMDrugs.atomic_numbers_to_species(atomic_numbers)
+        atom_types = utils.atomic_numbers_to_symbols(atomic_numbers)
 
         yield datatypes.Graph(
-            nodes=dict(positions=atom_positions, species=species),
+            nodes=dict(
+                positions=atom_positions,
+                species=species,
+                atom_types=atom_types,
+            ),
             edges=None,
             senders=None,
             receivers=None,
             n_edge=None,
-            n_node=np.array([len(atom_types)]),
+            n_node=np.array([len(atomic_numbers)]),
             globals=None,
         )
 
