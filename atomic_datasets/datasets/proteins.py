@@ -567,6 +567,10 @@ def load_data(
                 residue_starts = np.concatenate(
                     [residue_starts, np.array([len(chain)])]
                 )
+                aa_sequence = np.vectorize(amino_acid_dict.get)(
+                    chain.res_name[residue_starts[:-1]]
+                )
+
                 end_ndx = len(residue_starts) - max_residues
                 if end_ndx >= 1:
                     start_residue = np.random.default_rng().integers(end_ndx)
@@ -581,12 +585,10 @@ def load_data(
                     positions = positions[start:end]
                     species = species[start:end]
                     elements = elements[start:end]
+                    aa_sequence = aa_sequence[start_residue : start_residue + max_residues]
 
                 assert len(positions) >= 5, f"Too few atoms in {mol_file}"
 
-                aa_sequence = np.vectorize(amino_acid_dict.get)(
-                    chain.res_name[residue_starts[:-1]]
-                )
                 structure = create_structure(
                     positions,
                     species,
