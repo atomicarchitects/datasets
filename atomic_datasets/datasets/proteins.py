@@ -463,7 +463,7 @@ def load_data(
         root_dir, f"{dataset}_{mode}_maxlength={max_residues}_start={start_index}_end={end_index}.pkl"
     )
     if os.path.isfile(pickle_file):
-        logging.info(f"Loading preprocessed {dataset} dataset.")
+        logging.info(f"Loading preprocessed {dataset} dataset from {pickle_file}")
         with open(pickle_file, "rb") as f:
             all_structures = pickle.load(f)
         logging.info(f"Loaded {len(all_structures)} structures.")
@@ -605,6 +605,7 @@ def load_data(
                 continue
 
     logging.info(f"Loaded {count} structures.")
+    logging.info(f"Saving preprocessed {dataset} dataset to {pickle_file}")
     with open(pickle_file, "wb") as f:
         pickle.dump(all_structures, f)
     return all_structures
