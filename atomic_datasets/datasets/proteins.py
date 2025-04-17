@@ -409,7 +409,7 @@ class Miniproteins(SplitterMixin, ProteinsFull):
         **kwargs,
     ):
         super().__init__(
-            num_train_molecules=53446,
+            num_train_molecules=53445,
             num_val_molecules=6681,
             num_test_molecules=6681,
             dataset="miniproteins",
@@ -569,13 +569,14 @@ def load_data(
                 )
                 end_ndx = len(residue_starts) - max_residues
                 if end_ndx >= 1:
-                    start = np.random.default_rng().integers(end_ndx)
+                    start_residue = np.random.default_rng().integers(end_ndx)
 
                     if mode == "alpha_carbons":
-                        end = start + max_residues
+                        start = start_residue
+                        end = start_residue + max_residues
                     else:
-                        start = residue_starts[start]
-                        end = residue_starts[-1]
+                        start = residue_starts[start_residue]
+                        end = residue_starts[start_residue + max_residues]
 
                     positions = positions[start:end]
                     species = species[start:end]
