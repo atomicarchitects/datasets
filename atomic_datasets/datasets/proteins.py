@@ -77,7 +77,8 @@ class ProteinsGeneric(datatypes.MolecularDataset):
         self,
         root_dir: str,
         dataset: str,
-        split: str,
+        split: Optional[str] = None,
+        use_random_splits: bool = True,
         start_index: Optional[int] = None,
         end_index: Optional[int] = None,
         train_on_single_molecule: Optional[bool] = False,
@@ -90,10 +91,24 @@ class ProteinsGeneric(datatypes.MolecularDataset):
             raise ValueError("root_dir must be provided.")
 
         self.root_dir = root_dir
+        self.use_random_splits = use_random_splits
+        self.start_index = start_index
+        self.end_index = end_index
         self.split = split
         self.train_on_single_molecule = train_on_single_molecule
         self.preprocessed = False
         self.max_residues = max_residues
+
+        if self.use_random_splits:
+            if self.split is None:
+                raise ValueError(
+                    "When use_random_splits is True, split must be provided."
+                )
+
+            if self.start_index is not None or self.end_index is not None:
+                logging.warning(
+                    "When use_random_splits is True, start_index and end_index refer to the indices of the random splits."
+                )
 
         if self.train_on_single_molecule:
             logging.info(
@@ -113,10 +128,16 @@ class ProteinsGeneric(datatypes.MolecularDataset):
 
     def preprocess(self):
         self.preprocessed = True
-        if self.all_graphs is None:
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            
+            if self.all_graphs is None:
                 self.all_graphs = list(self.load_data())
+
+        if self.split is None:
+            return
+
         splits = self.split_indices()
         split = splits[self.split]
         if self.start_index is not None:
@@ -143,92 +164,64 @@ class ProteinsGeneric(datatypes.MolecularDataset):
 
 
 class ProteinsAlphaCarbons(ProteinsGeneric):
-    def __init__(
-        self,
-        root_dir: str,
-        dataset: str,
-        split: str,
-        start_index: Optional[int] = None,
-        end_index: Optional[int] = None,
-        train_on_single_molecule: Optional[bool] = False,
-        train_on_single_molecule_index: Optional[int] = 0,
-        max_residues: Optional[int] = None,
-    ):
-        super().__init__(
-            root_dir,
-            dataset,
-            split,
-            start_index,
-            end_index,
-            train_on_single_molecule,
-            train_on_single_molecule_index,
-            max_residues,
-        )
-
+    
     def load_data(self):
         return load_data(
             self.dataset,
             self.root_dir,
             ProteinsAlphaCarbons.atoms_to_species(),
             mode="alpha_carbons",
+            use_random_splits=self.use_random_splits,
             max_residues=self.max_residues,
+            start_index=self.start_index,
+            end_index=self.end_index,
         )
 
-    @staticmethod
-    def get_atomic_numbers() -> np.ndarray:
+    @classmethod
+    def atom_types(cls) -> np.ndarray:
+        return cls.get_species()
+
+    @classmethod
+    def get_atomic_numbers(cls) -> np.ndarray:
         return np.asarray([6])
 
-    @staticmethod
-    def species_to_atomic_numbers() -> Dict[int, int]:
+    @classmethod
+    def species_to_atomic_numbers(cls) -> Dict[int, int]:
         return {0: 6}
 
-    @staticmethod
-    def atoms_to_species() -> Dict[str, int]:
+    @classmethod
+    def atoms_to_species(cls) -> Dict[str, int]:
         return {"CA": 0}
 
-    @staticmethod
-    def get_species() -> List[str]:
+    @classmethod
+    def get_species(cls) -> List[str]:
         return ["CA"]
 
 
 class ProteinsBackbone(ProteinsGeneric):
-    def __init__(
-        self,
-        root_dir: str,
-        dataset: str,
-        split: str,
-        start_index: Optional[int] = None,
-        end_index: Optional[int] = None,
-        train_on_single_molecule: Optional[bool] = False,
-        train_on_single_molecule_index: Optional[int] = 0,
-        max_residues: Optional[int] = None,
-    ):
-        super().__init__(
-            root_dir,
-            dataset,
-            split,
-            start_index,
-            end_index,
-            train_on_single_molecule,
-            train_on_single_molecule_index,
-            max_residues,
-        )
-
+    
     def load_data(self):
         return load_data(
             self.dataset,
             self.root_dir,
             ProteinsBackbone.atoms_to_species(),
             mode="backbone",
+            use_random_splits=self.use_random_splits,
             max_residues=self.max_residues,
+            start_index=self.start_index,
+            end_index=self.end_index,
         )
 
-    @staticmethod
-    def get_atomic_numbers() -> np.ndarray:
-        return np.asarray([0]*22 + [6, 7, 7])
+    @classmethod
+    def atom_types(cls) -> np.ndarray:
+        return cls.get_species()
 
-    @staticmethod
-    def species_to_atomic_numbers() -> Dict[int, int]:
+    @classmethod
+    def get_atomic_numbers(cls) -> np.ndarray:
+        return np.asarray([0] * 22 + [6, 7, 7])
+
+    @classmethod
+    def species_to_atomic_numbers(cls) -> Dict[int, int]:
         mapping = {}
         # C first, then CA, then amino acids
         for i in range(23):
@@ -237,8 +230,8 @@ class ProteinsBackbone(ProteinsGeneric):
         mapping[24] = 7  # X = initial N
         return mapping
 
-    @staticmethod
-    def atoms_to_species() -> Dict[str, int]:
+    @classmethod
+    def atoms_to_species(cls) -> Dict[str, int]:
         mapping = {}
         amino_acid_abbr = get_amino_acids()
         for i, aa in enumerate(amino_acid_abbr):
@@ -249,49 +242,35 @@ class ProteinsBackbone(ProteinsGeneric):
         # mapping["X"] = 25
         return mapping
 
-    @staticmethod
-    def get_species() -> List[str]:
+    @classmethod
+    def get_species(cls) -> List[str]:
         return get_amino_acids() + ["C", "CA", "N"]
 
 
 class ProteinsFull(ProteinsGeneric):
-    def __init__(
-        self,
-        root_dir: str,
-        dataset: str,
-        split: str,
-        start_index: Optional[int] = None,
-        end_index: Optional[int] = None,
-        train_on_single_molecule: Optional[bool] = False,
-        train_on_single_molecule_index: Optional[int] = 0,
-        max_residues: Optional[int] = None,
-    ):
-        super().__init__(
-            root_dir,
-            dataset,
-            split,
-            start_index,
-            end_index,
-            train_on_single_molecule,
-            train_on_single_molecule_index,
-            max_residues,
-        )
-
+    
     def load_data(self):
         return load_data(
             self.dataset,
             self.root_dir,
             ProteinsBackbone.atoms_to_species(),
             mode="full",
+            use_random_splits=self.use_random_splits,
             max_residues=self.max_residues,
+            start_index=self.start_index,
+            end_index=self.end_index,
         )
 
-    @staticmethod
+    @classmethod
+    def atom_types(cls) -> np.ndarray:
+        return cls.get_species()
+
+    @classmethod
     def get_atomic_numbers() -> np.ndarray:
         return np.asarray([1, 6, 7, 8, 16, 34])
 
     @classmethod
-    def species_to_atomic_numbers(cls, species: np.ndarray) -> Dict[int, int]:
+    def species_to_atomic_numbers(cls) -> Dict[int, int]:
         return {
             0: 1,
             1: 6,
@@ -302,7 +281,7 @@ class ProteinsFull(ProteinsGeneric):
             6: 7,  # X
         }
 
-    @staticmethod
+    @classmethod
     def atoms_to_species() -> Dict[str, int]:
         mapping = {}
         mapping["H"] = 0
@@ -314,7 +293,7 @@ class ProteinsFull(ProteinsGeneric):
         # mapping["X"] = 6
         return mapping
 
-    @staticmethod
+    @classmethod
     def get_species() -> List[str]:
         return ["H", "C", "N", "O", "S", "Se"]
 
@@ -327,8 +306,8 @@ class SplitterMixin:
         num_train_molecules: int,
         num_val_molecules: int,
         num_test_molecules: int,
-        train_on_single_molecule: bool,
-        train_on_single_molecule_index: int,
+        train_on_single_molecule: bool = False,
+        train_on_single_molecule_index: Optional[int] = 0,
         rng_seed: Optional[int] = 0,
         **kwargs,
     ):
@@ -375,117 +354,93 @@ class CATHAlphaCarbons(SplitterMixin, ProteinsAlphaCarbons):
 
     def __init__(
         self,
-        root_dir: str,
-        split: str,
-        start_index: Optional[int] = None,
-        end_index: Optional[int] = None,
-        train_on_single_molecule: Optional[bool] = False,
-        train_on_single_molecule_index: Optional[int] = 0,
-        max_residues: Optional[int] = None,
         rng_seed: Optional[
             int
         ] = 6489,  # Taken from FoldingDiff: https://github.com/microsoft/foldingdiff
+        **kwargs,
     ):
         super().__init__(
             num_train_molecules=16793,
             num_val_molecules=2100,
             num_test_molecules=2099,
-            train_on_single_molecule=train_on_single_molecule,
-            train_on_single_molecule_index=train_on_single_molecule_index,
-            rng_seed=rng_seed,
-            root_dir=root_dir,
             dataset="cath",
-            split=split,
-            start_index=start_index,
-            end_index=end_index,
-            max_residues=max_residues,
+            rng_seed=rng_seed,
+            **kwargs,
         )
 
 
 class MiniproteinsAlphaCarbons(SplitterMixin, ProteinsAlphaCarbons):
-    """Dataset of miniproteins."""
+    """Dataset of miniproteins with alpha carbons only."""
 
     def __init__(
         self,
-        root_dir: str,
-        split: str,
-        start_index: Optional[int] = None,
-        end_index: Optional[int] = None,
-        train_on_single_molecule: Optional[bool] = False,
-        train_on_single_molecule_index: Optional[int] = 0,
-        max_residues: Optional[int] = None,
-        rng_seed: Optional[int] = 0,
+        **kwargs,
     ):
         super().__init__(
             num_train_molecules=53445,
             num_val_molecules=6681,
             num_test_molecules=6681,
-            train_on_single_molecule=train_on_single_molecule,
-            train_on_single_molecule_index=train_on_single_molecule_index,
-            rng_seed=rng_seed,
-            root_dir=root_dir,
             dataset="miniproteins",
-            split=split,
-            start_index=start_index,
-            end_index=end_index,
-            max_residues=max_residues,
+            **kwargs,
         )
 
 
 class MiniproteinsBackbone(SplitterMixin, ProteinsBackbone):
+    """Dataset of miniproteins with backbone atoms only."""
+
     def __init__(
         self,
-        root_dir: str,
-        split: str,
-        start_index: Optional[int] = None,
-        end_index: Optional[int] = None,
-        train_on_single_molecule: Optional[bool] = False,
-        train_on_single_molecule_index: Optional[int] = 0,
-        max_residues: Optional[int] = None,
-        rng_seed: Optional[int] = 0,
+        **kwargs,
     ):
         super().__init__(
             num_train_molecules=53445,
             num_val_molecules=6681,
             num_test_molecules=6681,
-            train_on_single_molecule=train_on_single_molecule,
-            train_on_single_molecule_index=train_on_single_molecule_index,
-            rng_seed=rng_seed,
-            root_dir=root_dir,
             dataset="miniproteins",
-            split=split,
-            start_index=start_index,
-            end_index=end_index,
-            max_residues=max_residues,
+            **kwargs,
         )
 
 
 class Miniproteins(SplitterMixin, ProteinsFull):
+    """Dataset of miniproteins."""
+
     def __init__(
         self,
-        root_dir: str,
-        split: str,
-        start_index: Optional[int] = None,
-        end_index: Optional[int] = None,
-        train_on_single_molecule: Optional[bool] = False,
-        train_on_single_molecule_index: Optional[int] = 0,
-        max_residues: Optional[int] = None,
-        rng_seed: Optional[int] = 0,
+        **kwargs,
     ):
         super().__init__(
             num_train_molecules=53445,
             num_val_molecules=6681,
             num_test_molecules=6681,
-            train_on_single_molecule=train_on_single_molecule,
-            train_on_single_molecule_index=train_on_single_molecule_index,
-            rng_seed=rng_seed,
-            root_dir=root_dir,
             dataset="miniproteins",
-            split=split,
-            start_index=start_index,
-            end_index=end_index,
-            max_residues=max_residues,
+            **kwargs,
         )
+
+
+def create_structure(
+    positions: np.ndarray,
+    species: np.ndarray,
+    elements: np.ndarray,
+    aa_sequence: str,
+    mol_file: str,
+) -> datatypes.Graph:
+    return datatypes.Graph(
+        nodes=dict(
+            positions=np.asarray(positions),
+            species=np.asarray(species),
+            atom_types=np.asarray(elements),
+        ),
+        edges=None,
+        receivers=None,
+        senders=None,
+        globals=dict(
+            aa_sequence=aa_sequence,
+            num_residues=len(aa_sequence),
+            file_name=mol_file,
+        ),
+        n_node=np.asarray([len(species)]),
+        n_edge=None,
+    )
 
 
 def load_data(
@@ -493,11 +448,20 @@ def load_data(
     root_dir: str,
     atoms_to_species: Dict[str, int],
     mode: str,
+    use_random_splits: bool,
     max_residues: Optional[int] = None,
+    start_index: Optional[int] = None,
+    end_index: Optional[int] = None,
 ) -> Iterable[datatypes.Graph]:
     """Load the dataset."""
 
-    pickle_file = os.path.join(root_dir, f"{dataset}_{mode}_maxlength_{max_residues}.pkl")
+    if use_random_splits:
+        start_index = None
+        end_index = None
+    
+    pickle_file = os.path.join(
+        root_dir, f"{dataset}_{mode}_maxlength={max_residues}_start={start_index}_end={end_index}.pkl"
+    )
     if os.path.isfile(pickle_file):
         logging.info(f"Loading preprocessed {dataset} dataset.")
         with open(pickle_file, "rb") as f:
@@ -533,30 +497,17 @@ def load_data(
     if max_residues is None:
         max_residues = np.inf
 
-    def _add_structure(positions, species, aa_sequence, mol_file):
-        # Convert to Structure.
-        structure = datatypes.Graph(
-            nodes=dict(
-                positions=np.asarray(positions),
-                species=np.asarray(species),
-            ),
-            edges=None,
-            receivers=None,
-            senders=None,
-            globals=dict(
-                aa_sequence=aa_sequence,
-                num_residues=len(aa_sequence),
-                file_name=mol_file,
-            ),
-            n_node=np.asarray([len(species)]),
-            n_edge=None,
-        )
-        all_structures.append(structure)
-        return structure
-
     logging.info("Loading structures...")
-    ct = 0
-    for mol_file in mol_files_list:
+    count = 0
+    for index, mol_file in enumerate(
+        sorted(mol_files_list),
+    ):
+        if start_index is not None and index < start_index:
+            continue
+
+        if end_index is not None and index >= end_index:
+            break
+
         mol_path = os.path.join(mols_path, mol_file).strip()
         # print(f"Processing {mol_path}...")
         # read pdb
@@ -594,13 +545,17 @@ def load_data(
             chain = protein[chain_starts[i] : chain_starts[i + 1]]
             try:
                 positions = chain.coord
-                elements = chain.element if mode == "full" else chain.atom_name
+                if mode == "full":
+                    elements = chain.element
+                else:
+                    elements = chain.atom_name
 
-                # get initial N of the chain
+                # Get initial N of the chain
                 # if mode != "alpha_carbons":
                 #     first_n = np.argwhere(elements == "N")[0][0]
                 #     elements[first_n] = "X"
-                # set CB to corresponding residue name ("backbone" only)
+
+                # Set CB to corresponding residue name ("backbone" only)
                 if mode == "backbone":
                     cb_atoms = np.argwhere(chain.atom_name == "CB").flatten()
                     elements[cb_atoms] = chain.res_name[cb_atoms]
@@ -615,32 +570,38 @@ def load_data(
                 end_ndx = len(residue_starts) - max_residues
                 if end_ndx >= 1:
                     start = np.random.default_rng().integers(end_ndx)
-                    start = start if mode == "alpha_carbons" else residue_starts[start]
-                    end = (
-                        start + max_residues
-                        if mode == "alpha_carbons"
-                        else residue_starts[-1]
-                    )
+
+                    if mode == "alpha_carbons":
+                        end = start + max_residues
+                    else:
+                        start = residue_starts[start]
+                        end = residue_starts[-1]
+
                     positions = positions[start:end]
                     species = species[start:end]
+                    elements = elements[start:end]
+
                 assert len(positions) >= 5, f"Too few atoms in {mol_file}"
 
-                _add_structure(
+                aa_sequence = np.vectorize(amino_acid_dict.get)(
+                    chain.res_name[residue_starts[:-1]]
+                )
+                structure = create_structure(
                     positions,
                     species,
-                    np.vectorize(amino_acid_dict.get)(
-                        chain.res_name[residue_starts[:-1]]
-                    ),
+                    elements,
+                    aa_sequence,
                     mol_file,
                 )
-                ct += 1
+                all_structures.append(structure)
+                count += 1
 
             except Exception as e:
                 print(f"Error processing {mol_file}: {e}")
                 print(f"Skipping {mol_file}...")
                 continue
 
-    logging.info(f"Loaded {ct} structures.")
+    logging.info(f"Loaded {count} structures.")
     with open(pickle_file, "wb") as f:
         pickle.dump(all_structures, f)
     return all_structures

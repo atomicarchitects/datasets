@@ -15,8 +15,12 @@ class Tetris(datatypes.MolecularDataset):
         super().__init__()
         self.all_graphs = list(load_tetris())
 
-    @staticmethod
-    def get_atomic_numbers() -> np.ndarray:
+    @classmethod
+    def atom_types(cls) -> np.ndarray:
+        return np.asarray(["H"])
+
+    @classmethod
+    def get_atomic_numbers(cls) -> np.ndarray:
         return np.asarray([1])
 
     def __iter__(self) -> Iterable[datatypes.Graph]:
