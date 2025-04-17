@@ -135,7 +135,7 @@ class ProteinsGeneric(datatypes.MolecularDataset):
             if self.all_graphs is None:
                 self.all_graphs = list(self.load_data())
 
-        if self.split is None:
+        if not self.use_random_splits:
             return
 
         splits = self.split_indices()
