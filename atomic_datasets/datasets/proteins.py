@@ -135,7 +135,7 @@ class ProteinsGeneric(datatypes.MolecularDataset):
             if self.all_graphs is None:
                 self.all_graphs = list(self.load_data())
 
-        if self.split is None:
+        if not self.use_random_splits:
             return
 
         splits = self.split_indices()
@@ -462,7 +462,7 @@ def load_data(
         root_dir, f"{dataset}_{mode}_maxlength={max_residues}_start={start_index}_end={end_index}.pkl"
     )
     if os.path.isfile(pickle_file):
-        logging.info(f"Loading preprocessed {dataset} dataset.")
+        logging.info(f"Loading preprocessed {dataset} dataset from {pickle_file}")
         with open(pickle_file, "rb") as f:
             all_structures = pickle.load(f)
         logging.info(f"Loaded {len(all_structures)} structures.")
@@ -566,6 +566,10 @@ def load_data(
                 residue_starts = np.concatenate(
                     [residue_starts, np.array([len(chain)])]
                 )
+                aa_sequence = np.vectorize(amino_acid_dict.get)(
+                    chain.res_name[residue_starts[:-1]]
+                )
+
                 end_ndx = len(residue_starts) - max_residues
                 if end_ndx >= 1:
                     start_residue = np.random.default_rng().integers(end_ndx)
@@ -580,12 +584,10 @@ def load_data(
                     positions = positions[start:end]
                     species = species[start:end]
                     elements = elements[start:end]
+                    aa_sequence = aa_sequence[start_residue : start_residue + max_residues]
 
                 assert len(positions) >= 5, f"Too few atoms in {mol_file}"
 
-                aa_sequence = np.vectorize(amino_acid_dict.get)(
-                    chain.res_name[residue_starts[:-1]]
-                )
                 structure = create_structure(
                     positions,
                     species,
@@ -602,6 +604,7 @@ def load_data(
                 continue
 
     logging.info(f"Loaded {count} structures.")
+    logging.info(f"Saving preprocessed {dataset} dataset to {pickle_file}")
     with open(pickle_file, "wb") as f:
         pickle.dump(all_structures, f)
     return all_structures
