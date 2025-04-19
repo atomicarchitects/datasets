@@ -218,16 +218,15 @@ class ProteinsBackbone(ProteinsGeneric):
 
     @classmethod
     def get_atomic_numbers(cls) -> np.ndarray:
-        return np.asarray([0] * 22 + [6, 7, 7])
+        return np.asarray([0] * 22 + [6, 6, 7])
 
     @classmethod
     def species_to_atomic_numbers(cls) -> Dict[int, int]:
         mapping = {}
-        # C first, then CA, then amino acids
         for i in range(23):
             mapping[i] = 6
-        mapping[23] = 7  # N
-        mapping[24] = 7  # X = initial N
+        mapping[23] = 6  # CA
+        mapping[24] = 7  # N
         return mapping
 
     @classmethod
