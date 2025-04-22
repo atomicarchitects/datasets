@@ -217,7 +217,7 @@ class ProteinsBackbone(ProteinsGeneric):
 
     @classmethod
     def get_atomic_numbers(cls) -> np.ndarray:
-        return np.asarray([0] * 22 + [6, 6, 7])
+        return np.asarray([6] * 22 + [6, 6, 7])
 
     @classmethod
     def species_to_atomic_numbers(cls) -> Dict[int, int]:
