@@ -354,9 +354,9 @@ class SplitterMixin:
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self.num_train_molecules = num_train_molecules
-        self.num_val_molecules = num_val_molecules
-        self.num_test_molecules = num_test_molecules
+        self.num_train_molecules = 53445
+        self.num_val_molecules = 6681
+        self.num_test_molecules = 6681
         self.train_on_single_molecule = train_on_single_molecule
         self.train_on_single_molecule_index = train_on_single_molecule_index
         self.rng = np.random.default_rng(seed=rng_seed)
