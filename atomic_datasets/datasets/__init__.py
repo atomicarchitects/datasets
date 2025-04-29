@@ -7,5 +7,7 @@ from .proteins import (
     CATHAlphaCarbons,
     MiniproteinsAlphaCarbons,
     MiniproteinsBackbone,
+    MiniproteinsBackboneNoAA,
     Miniproteins,
+    get_amino_acids,
 )
