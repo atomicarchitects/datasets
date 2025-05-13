@@ -131,7 +131,7 @@ class ProteinsGeneric(datatypes.MolecularDataset):
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            
+
             if self.all_graphs is None:
                 self.all_graphs = list(self.load_data())
 
@@ -164,7 +164,6 @@ class ProteinsGeneric(datatypes.MolecularDataset):
 
 
 class ProteinsAlphaCarbons(ProteinsGeneric):
-    
     def load_data(self):
         return load_data(
             self.dataset,
@@ -199,7 +198,6 @@ class ProteinsAlphaCarbons(ProteinsGeneric):
 
 
 class ProteinsBackbone(ProteinsGeneric):
-    
     def load_data(self):
         return load_data(
             self.dataset,
@@ -248,7 +246,6 @@ class ProteinsBackbone(ProteinsGeneric):
 
 
 class ProteinsFull(ProteinsGeneric):
-    
     def load_data(self):
         return load_data(
             self.dataset,
@@ -458,9 +455,10 @@ def load_data(
     if use_random_splits:
         start_index = None
         end_index = None
-    
+
     pickle_file = os.path.join(
-        root_dir, f"{dataset}_{mode}_maxlength={max_residues}_start={start_index}_end={end_index}.pkl"
+        root_dir,
+        f"{dataset}_{mode}_maxlength={max_residues}_start={start_index}_end={end_index}.pkl",
     )
     if os.path.isfile(pickle_file):
         logging.info(f"Loading preprocessed {dataset} dataset from {pickle_file}")
@@ -585,7 +583,9 @@ def load_data(
                     positions = positions[start:end]
                     species = species[start:end]
                     elements = elements[start:end]
-                    aa_sequence = aa_sequence[start_residue : start_residue + max_residues]
+                    aa_sequence = aa_sequence[
+                        start_residue : start_residue + max_residues
+                    ]
 
                 assert len(positions) >= 5, f"Too few atoms in {mol_file}"
 
