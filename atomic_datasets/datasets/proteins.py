@@ -216,16 +216,15 @@ class ProteinsBackbone(ProteinsGeneric):
 
     @classmethod
     def get_atomic_numbers(cls) -> np.ndarray:
-        return np.asarray([0] * 22 + [6, 7, 7])
+        return np.asarray([6] * 22 + [6, 6, 7])
 
     @classmethod
     def species_to_atomic_numbers(cls) -> Dict[int, int]:
         mapping = {}
-        # C first, then CA, then amino acids
         for i in range(23):
             mapping[i] = 6
-        mapping[23] = 7  # N
-        mapping[24] = 7  # X = initial N
+        mapping[23] = 6  # CA
+        mapping[24] = 7  # N
         return mapping
 
     @classmethod
@@ -243,6 +242,50 @@ class ProteinsBackbone(ProteinsGeneric):
     @classmethod
     def get_species(cls) -> List[str]:
         return get_amino_acids() + ["C", "CA", "N"]
+
+
+class ProteinsBackboneNoAA(ProteinsGeneric):
+    def load_data(self):
+        return load_data(
+            self.dataset,
+            self.root_dir,
+            ProteinsBackbone.atoms_to_species(),
+            mode="backbone_no_aa",
+            use_random_splits=self.use_random_splits,
+            max_residues=self.max_residues,
+            start_index=self.start_index,
+            end_index=self.end_index,
+        )
+
+    @classmethod
+    def atom_types(cls) -> np.ndarray:
+        return cls.get_species()
+
+    @classmethod
+    def get_atomic_numbers(cls) -> np.ndarray:
+        return np.asarray([6, 6, 7])
+
+    @classmethod
+    def species_to_atomic_numbers(cls) -> Dict[int, int]:
+        mapping = {
+            0: 6,
+            1: 6,
+            2: 7,
+        }
+        return mapping
+
+    @classmethod
+    def atoms_to_species(cls) -> Dict[str, int]:
+        mapping = {
+            "C": 0,
+            "CA": 1,
+            "N": 2,
+        }
+        return mapping
+
+    @classmethod
+    def get_species(cls) -> List[str]:
+        return ["C", "CA", "N"]
 
 
 class ProteinsFull(ProteinsGeneric):
@@ -309,9 +352,9 @@ class SplitterMixin:
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self.num_train_molecules = num_train_molecules
-        self.num_val_molecules = num_val_molecules
-        self.num_test_molecules = num_test_molecules
+        self.num_train_molecules = 53445
+        self.num_val_molecules = 6681
+        self.num_test_molecules = 6681
         self.train_on_single_molecule = train_on_single_molecule
         self.train_on_single_molecule_index = train_on_single_molecule_index
         self.rng = np.random.default_rng(seed=rng_seed)
@@ -329,7 +372,15 @@ class SplitterMixin:
         total_mols = (
             self.num_train_molecules + self.num_val_molecules + self.num_test_molecules
         )
-        indices = np.arange(total_mols)
+        if self.start_index:
+            start_ndx = self.start_index
+        else:
+            start_ndx = 0
+        if self.end_index:
+            end_ndx = self.end_index
+        else:
+            end_ndx = total_mols
+        indices = np.arange(start_ndx, end_ndx)
         self.rng.shuffle(indices)
         splits = {
             "train": np.arange(self.num_train_molecules),
@@ -383,6 +434,22 @@ class MiniproteinsAlphaCarbons(SplitterMixin, ProteinsAlphaCarbons):
 
 
 class MiniproteinsBackbone(SplitterMixin, ProteinsBackbone):
+    """Dataset of miniproteins with backbone atoms only."""
+
+    def __init__(
+        self,
+        **kwargs,
+    ):
+        super().__init__(
+            num_train_molecules=53445,
+            num_val_molecules=6681,
+            num_test_molecules=6681,
+            dataset="miniproteins",
+            **kwargs,
+        )
+
+
+class MiniproteinsBackboneNoAA(SplitterMixin, ProteinsBackboneNoAA):
     """Dataset of miniproteins with backbone atoms only."""
 
     def __init__(
@@ -522,6 +589,8 @@ def load_data(
             mask = np.isin(protein.atom_name, ["CA"])
         elif mode == "backbone":
             mask = np.isin(protein.atom_name, ["CA", "N", "C", "CB"])
+        elif mode == "backbone_no_aa":
+            mask = np.isin(protein.atom_name, ["CA", "N", "C"])
         elif mode == "full":
             mask = np.ones(len(protein), dtype=bool)
         else:
