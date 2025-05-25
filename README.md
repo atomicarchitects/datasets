@@ -37,7 +37,18 @@ for graph in dataset:
 
 ## Citation
 
-If you use this repository, please cite the original papers for the relevant datasets:
+If you use this repository, please cite this repository as:
+```bibtex
+@software{atomic_datasets,
+	title        = {{atomic\_datasets}},
+	author       = {Daigavane, Ameya and Kim, Song},
+	year         = 2025,
+	month        = may,
+	url          = {https://github.com/atomicarchitects/datasets},
+	version      = {1.0.0}
+}
+```
+and the original papers for the relevant datasets:
 - QM9:
 ```bibtex
 @article{qm9,
