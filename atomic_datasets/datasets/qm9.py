@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import rdkit.Chem as Chem
 import tqdm
+import pickle
 
 from atomic_datasets import utils
 from atomic_datasets import datatypes
@@ -151,6 +152,17 @@ def load_qm9(
     properties = pd.read_csv(properties_csv_path)
     properties.set_index("mol_id", inplace=True)
 
+    pickle_file = os.path.join(
+        root_dir, f"qm9_start={start_index}_end={end_index}.pkl"
+    )
+    if os.path.isfile(pickle_file):
+        logging.info(f"Loading preprocessed {dataset} dataset from {pickle_file}")
+        with open(pickle_file, "rb") as f:
+            all_structures = pickle.load(f)
+        logging.info(f"Loaded {len(all_structures)} structures.")
+        return all_structures
+
+    all_structures = []
     for index, mol in enumerate(tqdm.tqdm(supplier, desc="Loading QM9")):
         if start_index is not None and index < start_index:
             continue
@@ -171,7 +183,7 @@ def load_qm9(
 
         atomic_numbers = np.asarray([atom.GetAtomicNum() for atom in mol.GetAtoms()])
 
-        yield datatypes.Graph(
+        frag = datatypes.Graph(
             nodes=dict(
                 positions=np.asarray(mol.GetConformer().GetPositions()),
                 species=QM9.atomic_numbers_to_species(atomic_numbers),
@@ -185,6 +197,10 @@ def load_qm9(
             n_edge=None,
             properties=mol_properties,
         )
+        all_structures.append(frag)
+        yield frag
+    with open(pickle_file, "wb") as f:
+        pickle.dump(all_structures, f)
 
 
 def remove_uncharacterized_molecules(
