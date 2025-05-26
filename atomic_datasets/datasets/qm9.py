@@ -255,7 +255,7 @@ def load_qm9(
         root_dir, f"qm9_start={start_index}_end={end_index}.pkl"
     )
     if os.path.isfile(pickle_file):
-        logging.info(f"Loading preprocessed {dataset} dataset from {pickle_file}")
+        logging.info(f"Loading preprocessed qm9 dataset from {pickle_file}")
         with open(pickle_file, "rb") as f:
             all_structures = pickle.load(f)
         logging.info(f"Loaded {len(all_structures)} structures.")
