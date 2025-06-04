@@ -331,10 +331,10 @@ def remove_uncharacterized_molecules(
     )
 
     # Cleanup file.
-    try:
-        os.remove(gdb9_txt_excluded)
-    except OSError:
-        pass
+    # try:
+    #     os.remove(gdb9_txt_excluded)
+    # except OSError:
+    #     pass
 
     # Now, create a list of included indices.
     Ngdb9 = 133885
