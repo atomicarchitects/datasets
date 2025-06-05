@@ -194,13 +194,14 @@ class QM9(datatypes.MolecularDataset):
 
         # For Anderson splits, cache each split separately
         self.all_graphs = list(load_qm9(self.root_dir, self.check_with_rdkit))
+        self.all_graphs = np.array(self.all_graphs)
         splits = get_Anderson_splits(self.root_dir)
         split = splits[self.split]
         if self.start_index is not None:
             split = split[self.start_index :]
         if self.end_index is not None:
             split = split[: self.end_index]
-        self.all_graphs = [self.all_graphs[i] for i in split]
+        self.all_graphs = self.all_graphs[split]
 
     @utils.after_preprocess
     def __iter__(self) -> Iterable[datatypes.Graph]:
@@ -251,16 +252,6 @@ def load_qm9(
     properties = pd.read_csv(properties_csv_path)
     properties.set_index("mol_id", inplace=True)
 
-    pickle_file = os.path.join(
-        root_dir, f"qm9_start={start_index}_end={end_index}.pkl"
-    )
-    if os.path.isfile(pickle_file):
-        logging.info(f"Loading preprocessed qm9 dataset from {pickle_file}")
-        with open(pickle_file, "rb") as f:
-            all_structures = pickle.load(f)
-        logging.info(f"Loaded {len(all_structures)} structures.")
-        return all_structures
-
     all_structures = []
     for index, mol in enumerate(tqdm.tqdm(supplier, desc="Loading QM9")):
         if start_index is not None and index < start_index:
@@ -298,8 +289,6 @@ def load_qm9(
         )
         all_structures.append(frag)
         yield frag
-    with open(pickle_file, "wb") as f:
-        pickle.dump(all_structures, f)
 
 
 def remove_uncharacterized_molecules(
