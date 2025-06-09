@@ -22,6 +22,8 @@ class GEOMDrugs(datatypes.MolecularDataset):
         split: Optional[str] = None,
         start_index: Optional[int] = None,
         end_index: Optional[int] = None,
+        use_cache: bool = True,  # New parameter to enable/disable caching
+        cache_dir: Optional[str] = None,  # New parameter to specify cache directory
     ):
         super().__init__()
         self.root_dir = root_dir
@@ -32,6 +34,8 @@ class GEOMDrugs(datatypes.MolecularDataset):
 
         self.preprocessed = False
         self.all_graphs = None
+        self.use_cache = use_cache
+        self.cache_dir = cache_dir
 
         if self.use_GCDM_splits:
             if self.split is None:
@@ -43,6 +47,12 @@ class GEOMDrugs(datatypes.MolecularDataset):
                 logging.warning(
                     "When use_GCDM_splits is True, start_index and end_index refer to the indices of the GCDM splits."
                 )
+
+        # Use cached version if enabled
+        if self.use_cache:
+            self.load_geom_drugs_fn = utils.cache_to_file("geom_drugs", self.cache_dir)(load_GEOM_drugs)
+        else:
+            self.load_geom_drugs_fn = load_GEOM_drugs
 
     @classmethod
     def atom_types(cls) -> np.ndarray:
@@ -58,11 +68,11 @@ class GEOMDrugs(datatypes.MolecularDataset):
         preprocess(self.root_dir)
         if not self.use_GCDM_splits:
             self.all_graphs = list(
-                load_GEOM_drugs(self.root_dir, self.start_index, self.end_index)
+                self.load_geom_drugs_fn(self.root_dir, self.start_index, self.end_index)
             )
             return
 
-        self.all_graphs = list(load_GEOM_drugs(self.root_dir))
+        self.all_graphs = list(self.load_geom_drugs_fn(self.root_dir))
         splits = get_GCDM_splits(self.root_dir)
         split = splits[self.split]
         if self.start_index is not None:
