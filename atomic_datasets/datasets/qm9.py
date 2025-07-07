@@ -1,4 +1,5 @@
-from typing import Iterable, Dict, Optional
+from typing import Iterable, Dict, Optional, Tuple
+
 import os
 import logging
 import pickle
@@ -289,7 +290,7 @@ def load_qm9(
 
 def remove_uncharacterized_molecules(
     root_dir: str,
-):
+) -> Tuple[np.ndarray, np.ndarray]:
     """Remove molecules from the QM9 dataset that are uncharacterized."""
 
     def is_int(string: str) -> bool:
