@@ -1,4 +1,5 @@
-from typing import Iterable, Dict, Optional
+from typing import Iterable, Dict, Optional, Tuple
+
 import os
 import logging
 
@@ -181,6 +182,7 @@ def load_qm9(
         mol_id = mol.GetProp("_Name")
         mol_properties = properties.loc[mol_id].to_dict()
         mol_properties["mol_id"] = mol_id
+        mol_properties["rdkit_mol"] = mol
 
         atomic_numbers = np.asarray([atom.GetAtomicNum() for atom in mol.GetAtoms()])
 
@@ -204,7 +206,7 @@ def load_qm9(
 
 def remove_uncharacterized_molecules(
     root_dir: str,
-):
+) -> Tuple[np.ndarray, np.ndarray]:
     """Remove molecules from the QM9 dataset that are uncharacterized."""
 
     def is_int(string: str) -> bool:
