@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import rdkit.Chem as Chem
 import tqdm
-import pickle
+import random
 
 from atomic_datasets import utils
 from atomic_datasets import datatypes
@@ -94,14 +94,24 @@ class QM9(datatypes.MolecularDataset):
             else:
                 load_qm9_fn = load_qm9
 
-            self.all_graphs = list(
+            all_graphs = list(
                 load_qm9_fn(
                     self.root_dir,
                     self.check_with_rdkit,
-                    self.start_index,
-                    self.end_index,
                 )
             )
+            random.seed(0)
+            random.shuffle(all_graphs)
+            # if start_index/end_index are None, they default to the start/end of the list when used as indices
+            self.all_graphs = all_graphs[self.start_index : self.end_index]
+            # self.all_graphs = list(
+            #     load_qm9_fn(
+            #         self.root_dir,
+            #         self.check_with_rdkit,
+            #         self.start_index,
+            #         self.end_index,
+            #     )
+            # )
             return
 
         # For Anderson splits, cache each split separately
@@ -177,6 +187,7 @@ def load_qm9(
 
         # Check that the molecule passes some basic checks from Posebusters.
         if check_with_rdkit and not utils.is_molecule_sane(mol):
+            print(f"Skipping molecule {index} ({mol.GetProp('_Name')}) due to sanity check failure.")
             continue
 
         mol_id = mol.GetProp("_Name")
