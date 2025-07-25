@@ -26,6 +26,7 @@ class QM9(datatypes.MolecularDataset):
         split: Optional[str] = None,
         use_Anderson_splits: bool = False,
         check_with_rdkit: bool = False,
+        check_validity: bool = False,
         start_index: Optional[int] = None,
         end_index: Optional[int] = None,
         train_on_single_molecule: Optional[bool] = False,
@@ -41,6 +42,7 @@ class QM9(datatypes.MolecularDataset):
         self.root_dir = root_dir
         self.split = split
         self.check_with_rdkit = check_with_rdkit
+        self.check_validity = check_validity
         self.use_Anderson_splits = use_Anderson_splits
         self.start_index = start_index
         self.end_index = end_index
@@ -98,6 +100,7 @@ class QM9(datatypes.MolecularDataset):
                 load_qm9_fn(
                     self.root_dir,
                     self.check_with_rdkit,
+                    self.check_validity,
                 )
             )
             random.seed(0)
@@ -115,7 +118,7 @@ class QM9(datatypes.MolecularDataset):
             return
 
         # For Anderson splits, cache each split separately
-        self.all_graphs = list(load_qm9(self.root_dir, self.check_with_rdkit))
+        self.all_graphs = list(load_qm9(self.root_dir, self.check_with_rdkit, self.check_validity))
         self.all_graphs = np.array(self.all_graphs)
         splits = get_Anderson_splits(self.root_dir)
         split = splits[self.split]
@@ -162,6 +165,7 @@ def preprocess_directory(root_dir: str) -> None:
 def load_qm9(
     root_dir: str,
     check_with_rdkit: bool = True,
+    check_validity: bool = False,
     start_index: Optional[int] = None,
     end_index: Optional[int] = None,
 ) -> Iterable[datatypes.Graph]:
@@ -188,6 +192,9 @@ def load_qm9(
         # Check that the molecule passes some basic checks from Posebusters.
         if check_with_rdkit and not utils.is_molecule_sane(mol):
             print(f"Skipping molecule {index} ({mol.GetProp('_Name')}) due to sanity check failure.")
+            continue
+        if check_validity and not utils.check_molecule_validity(mol):
+            print(f"Skipping molecule {index} ({mol.GetProp('_Name')}) due to validity check failure")
             continue
 
         mol_id = mol.GetProp("_Name")

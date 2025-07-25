@@ -33,8 +33,11 @@ def cache_to_file(dataset: str, cache_dir: Optional[str] = None):
             check_with_rdkit = (
                 args[1] if len(args) > 1 else kwargs.get("check_with_rdkit", True)
             )
-            start_index = args[2] if len(args) > 2 else kwargs.get("start_index", None)
-            end_index = args[3] if len(args) > 3 else kwargs.get("end_index", None)
+            check_validity = (
+                args[2] if len(args) > 2 else kwargs.get("check_validity", True)
+            )
+            start_index = args[3] if len(args) > 3 else kwargs.get("start_index", None)
+            end_index = args[4] if len(args) > 4 else kwargs.get("end_index", None)
 
             # Create cache directory
             cache_path = cache_dir or os.path.join(root_dir, "cache")
@@ -45,7 +48,7 @@ def cache_to_file(dataset: str, cache_dir: Optional[str] = None):
             file_hash = get_file_hash(current_file)
 
             # Create cache filename based on parameters and file hash
-            cache_name = f"{dataset}_cache_{check_with_rdkit}_{start_index}_{end_index}_{file_hash}.pkl"
+            cache_name = f"{dataset}_cache_{check_with_rdkit}_{check_validity}_{start_index}_{end_index}_{file_hash}.pkl"
             cache_file = os.path.join(cache_path, cache_name)
 
             # Check if cache exists and load if available
@@ -59,7 +62,7 @@ def cache_to_file(dataset: str, cache_dir: Optional[str] = None):
 
             # Remove any old cache files with different hashes
             old_cache_pattern = (
-                f"{dataset}_cache_{check_with_rdkit}_{start_index}_{end_index}_*.pkl"
+                f"{dataset}_cache_{check_with_rdkit}_{check_validity}_{start_index}_{end_index}_*.pkl"
             )
             for old_cache in glob.glob(os.path.join(cache_path, old_cache_pattern)):
                 if os.path.basename(old_cache) != os.path.basename(cache_file):
