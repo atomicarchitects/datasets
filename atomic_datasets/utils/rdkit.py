@@ -64,6 +64,7 @@ def check_molecule_validity(mol: Chem.Mol) -> bool:
     assert mol.GetNumConformers() == 1
 
     try:
+        Chem.SanitizeMol(mol)
         mol = add_bonds(mol)
     except (ValueError, IndexError):
         return False
