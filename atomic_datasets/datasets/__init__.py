@@ -11,3 +11,4 @@ from .proteins import (
     Miniproteins,
     get_amino_acids,
 )
+from .chembl3d_stereo import ChemBL3DStereo
