@@ -98,12 +98,7 @@ class ChemBL3DStereo(datatypes.MolecularDataset):
         # random.seed(0)
         # random.shuffle(all_graphs)
         # if start_index/end_index are None, they default to the start/end of the list when used as indices
-        self.all_graphs = all_graphs
-        if self.end_index:
-            self.all_graphs = self.all_graphs[: self.end_index]
-        if self.start_index:
-            self.all_graphs = self.all_graphs[self.start_index :]
-        return
+        self.all_graphs = all_graphs[self.start_index:self.end_index]
 
     @utils.after_preprocess
     def __iter__(self) -> Iterable[datatypes.Graph]:
