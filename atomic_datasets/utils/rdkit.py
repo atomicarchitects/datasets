@@ -1,5 +1,6 @@
 import numpy as np
 from rdkit import Chem
+from rdkit.Chem import rdDetermineBonds
 
 
 def atomic_number_to_symbol(atomic_number: int) -> str:
@@ -42,3 +43,33 @@ def is_molecule_sane(mol: Chem.Mol) -> bool:
         "all_atoms_connected": num_frags <= 1,
     }
     return all(results.values())
+
+def add_bonds(mol: Chem.Mol) -> Chem.Mol:
+    """Adds bonds to a molecule."""
+    mol = Chem.RWMol(mol)
+    rdDetermineBonds.DetermineBonds(
+        mol, charge=0, useHueckel=False, allowChargedFragments=True
+    )
+    return mol
+
+def check_molecule_validity(mol: Chem.Mol) -> bool:
+    """Checks whether a molecule is valid using xyz2mol.
+
+    This function checks whether xyz2mol can determine all bonds in a molecule, with a net charge of 0.
+    """
+    # Make a copy of the molecule.
+    mol = Chem.Mol(mol)
+
+    # We should only have one conformer.
+    assert mol.GetNumConformers() == 1
+
+    try:
+        Chem.SanitizeMol(mol)
+        mol = add_bonds(mol)
+    except (ValueError, IndexError):
+        return False
+
+    if mol.GetNumBonds() == 0:
+        return False
+
+    return True

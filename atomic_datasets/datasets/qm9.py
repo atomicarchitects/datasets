@@ -2,17 +2,12 @@ from typing import Iterable, Dict, Optional, Tuple
 
 import os
 import logging
-import pickle
-import time
-import hashlib
-import glob
-import inspect
-from functools import wraps
 
 import numpy as np
 import pandas as pd
 import rdkit.Chem as Chem
 import tqdm
+import random
 
 from atomic_datasets import utils
 from atomic_datasets import datatypes
@@ -20,89 +15,6 @@ from atomic_datasets import datatypes
 QM9_URL = (
     r"https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/molnet_publish/qm9.zip"
 )
-
-
-def get_file_hash(filepath: str) -> str:
-    """Get SHA-256 hash of a file."""
-    sha256_hash = hashlib.sha256()
-    try:
-        with open(filepath, "rb") as f:
-            for byte_block in iter(lambda: f.read(4096), b""):
-                sha256_hash.update(byte_block)
-        return sha256_hash.hexdigest()[:8]  # Use first 8 characters
-    except FileNotFoundError:
-        # If file not found, return empty string (might be running in REPL)
-        return ""
-
-
-def cache_to_file(cache_dir: Optional[str] = None):
-    """Decorator to cache the results of load_qm9 to a file."""
-
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            # Extract arguments
-            root_dir = args[0] if args else kwargs.get("root_dir")
-            check_with_rdkit = (
-                args[1] if len(args) > 1 else kwargs.get("check_with_rdkit", True)
-            )
-            start_index = args[2] if len(args) > 2 else kwargs.get("start_index", None)
-            end_index = args[3] if len(args) > 3 else kwargs.get("end_index", None)
-
-            # Create cache directory
-            cache_path = cache_dir or os.path.join(root_dir, "cache")
-            os.makedirs(cache_path, exist_ok=True)
-
-            # Get hash of current file for cache invalidation
-            current_file = inspect.getfile(inspect.currentframe())
-            file_hash = get_file_hash(current_file)
-
-            # Create cache filename based on parameters and file hash
-            cache_name = f"qm9_cache_{check_with_rdkit}_{start_index}_{end_index}_{file_hash}.pkl"
-            cache_file = os.path.join(cache_path, cache_name)
-
-            # Check if cache exists and load if available
-            if os.path.exists(cache_file):
-                print(f"Loading cached QM9 data from {os.path.abspath(cache_file)}")
-                with open(cache_file, "rb") as f:
-                    cached_graphs = pickle.load(f)
-                for graph in cached_graphs:
-                    yield graph
-                return
-
-            # Remove any old cache files with different hashes
-            old_cache_pattern = (
-                f"qm9_cache_{check_with_rdkit}_{start_index}_{end_index}_*.pkl"
-            )
-            for old_cache in glob.glob(os.path.join(cache_path, old_cache_pattern)):
-                if os.path.basename(old_cache) != os.path.basename(cache_file):
-                    print(f"Removing outdated cache file: {old_cache}")
-                    try:
-                        os.remove(old_cache)
-                    except OSError:
-                        pass
-
-            # If cache doesn't exist, run the original function and cache results
-            print(f"Caching QM9 data to {os.path.abspath(cache_file)}")
-            start_time = time.time()
-            graphs = list(func(*args, **kwargs))
-            end_time = time.time()
-
-            # Save to cache
-            with open(cache_file, "wb") as f:
-                pickle.dump(graphs, f)
-
-            print(
-                f"Cached {len(graphs)} molecules in {end_time - start_time:.2f} seconds"
-            )
-
-            # Yield the results
-            for graph in graphs:
-                yield graph
-
-        return wrapper
-
-    return decorator
 
 
 class QM9(datatypes.MolecularDataset):
@@ -114,6 +26,7 @@ class QM9(datatypes.MolecularDataset):
         split: Optional[str] = None,
         use_Anderson_splits: bool = False,
         check_with_rdkit: bool = False,
+        check_validity: bool = False,
         start_index: Optional[int] = None,
         end_index: Optional[int] = None,
         train_on_single_molecule: Optional[bool] = False,
@@ -129,6 +42,7 @@ class QM9(datatypes.MolecularDataset):
         self.root_dir = root_dir
         self.split = split
         self.check_with_rdkit = check_with_rdkit
+        self.check_validity = check_validity
         self.use_Anderson_splits = use_Anderson_splits
         self.start_index = start_index
         self.end_index = end_index
@@ -178,29 +92,41 @@ class QM9(datatypes.MolecularDataset):
 
             # Use cached version if enabled
             if self.use_cache:
-                load_qm9_fn = cache_to_file(self.cache_dir)(load_qm9)
+                load_qm9_fn = utils.cache_to_file("qm9", self.cache_dir)(load_qm9)
             else:
                 load_qm9_fn = load_qm9
 
-            self.all_graphs = list(
+            all_graphs = list(
                 load_qm9_fn(
                     self.root_dir,
                     self.check_with_rdkit,
-                    self.start_index,
-                    self.end_index,
+                    self.check_validity,
                 )
             )
+            random.seed(0)
+            random.shuffle(all_graphs)
+            # if start_index/end_index are None, they default to the start/end of the list when used as indices
+            self.all_graphs = all_graphs[self.start_index : self.end_index]
+            # self.all_graphs = list(
+            #     load_qm9_fn(
+            #         self.root_dir,
+            #         self.check_with_rdkit,
+            #         self.start_index,
+            #         self.end_index,
+            #     )
+            # )
             return
 
         # For Anderson splits, cache each split separately
-        self.all_graphs = list(load_qm9(self.root_dir, self.check_with_rdkit))
+        self.all_graphs = list(load_qm9(self.root_dir, self.check_with_rdkit, self.check_validity))
+        self.all_graphs = np.array(self.all_graphs)
         splits = get_Anderson_splits(self.root_dir)
         split = splits[self.split]
         if self.start_index is not None:
             split = split[self.start_index :]
         if self.end_index is not None:
             split = split[: self.end_index]
-        self.all_graphs = [self.all_graphs[i] for i in split]
+        self.all_graphs = self.all_graphs[split]
 
     @utils.after_preprocess
     def __iter__(self) -> Iterable[datatypes.Graph]:
@@ -239,6 +165,7 @@ def preprocess_directory(root_dir: str) -> None:
 def load_qm9(
     root_dir: str,
     check_with_rdkit: bool = True,
+    check_validity: bool = False,
     start_index: Optional[int] = None,
     end_index: Optional[int] = None,
 ) -> Iterable[datatypes.Graph]:
@@ -251,6 +178,7 @@ def load_qm9(
     properties = pd.read_csv(properties_csv_path)
     properties.set_index("mol_id", inplace=True)
 
+    all_structures = []
     for index, mol in enumerate(tqdm.tqdm(supplier, desc="Loading QM9")):
         if start_index is not None and index < start_index:
             continue
@@ -263,6 +191,10 @@ def load_qm9(
 
         # Check that the molecule passes some basic checks from Posebusters.
         if check_with_rdkit and not utils.is_molecule_sane(mol):
+            print(f"Skipping molecule {index} ({mol.GetProp('_Name')}) due to sanity check failure.")
+            continue
+        if check_validity and not utils.check_molecule_validity(mol):
+            print(f"Skipping molecule {index} ({mol.GetProp('_Name')}) due to validity check failure")
             continue
 
         mol_id = mol.GetProp("_Name")
@@ -272,7 +204,7 @@ def load_qm9(
 
         atomic_numbers = np.asarray([atom.GetAtomicNum() for atom in mol.GetAtoms()])
 
-        yield datatypes.Graph(
+        frag = datatypes.Graph(
             nodes=dict(
                 positions=np.asarray(mol.GetConformer().GetPositions()),
                 species=QM9.atomic_numbers_to_species(atomic_numbers),
@@ -286,6 +218,8 @@ def load_qm9(
             n_edge=None,
             properties=mol_properties,
         )
+        all_structures.append(frag)
+        yield frag
 
 
 def remove_uncharacterized_molecules(
@@ -317,10 +251,10 @@ def remove_uncharacterized_molecules(
     )
 
     # Cleanup file.
-    try:
-        os.remove(gdb9_txt_excluded)
-    except OSError:
-        pass
+    # try:
+    #     os.remove(gdb9_txt_excluded)
+    # except OSError:
+    #     pass
 
     # Now, create a list of included indices.
     Ngdb9 = 133885
