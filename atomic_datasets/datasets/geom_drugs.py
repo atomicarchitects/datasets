@@ -16,8 +16,6 @@ class GEOMDrugs(datatypes.MolecularDataset):
     """
     The GEOM (Drugs) dataset from https://www.nature.com/articles/s41597-022-01288-4.
     
-    Supports fast random access via memory-mapped arrays and precomputed boundaries.
-    
     Args:
         root_dir: Directory to store/load data
         use_GCDM_splits: Use the predefined train/val/test splits
