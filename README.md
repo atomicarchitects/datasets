@@ -21,7 +21,8 @@ pip install git+https://github.com/atomicarchitects/datasets
 ```python
 from atomic_datasets import GEOMDrugs
 
-# Initial preprocessing may take some time.
+# Initial preprocessing may take some time,
+# but once preprocessed, read speeds should be fast!
 dataset = GEOMDrugs(
     root_dir="data/qm9",
     split="train",
