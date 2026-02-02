@@ -40,7 +40,7 @@ COVALENT_RADII = {
 
 
 def _process_molecule(mol):
-    """Sanitize and kekulize a molecule."""
+    """Sanitize and kekulize a molecule. Module-level for pickling."""
     try:
         mol = Chem.Mol(mol)
         Chem.SanitizeMol(mol, sanitizeOps=SanitizeFlags.SANITIZE_ALL)
@@ -55,7 +55,7 @@ def _process_molecule(mol):
 
 
 def _check_topology(adjacency_matrix, numbers, coordinates, tolerance=0.4):
-    """Check if bond lengths are within tolerance."""
+    """Check if bond lengths are within tolerance. Module-level for pickling."""
     adjacency_mask = (adjacency_matrix > 0).astype(int)
     
     radii = np.array([COVALENT_RADII.get(n, 1.5) for n in numbers])
@@ -69,7 +69,7 @@ def _check_topology(adjacency_matrix, numbers, coordinates, tolerance=0.4):
 
 
 def _validate_topology(mol, tolerance=0.4):
-    """Validate topology."""
+    """Validate topology. Module-level for pickling."""
     adjacency_matrix = Chem.GetAdjacencyMatrix(mol)
     numbers = np.array([atom.GetAtomicNum() for atom in mol.GetAtoms()])
     
@@ -157,7 +157,7 @@ class GEOMDrugs(datatypes.MolecularDataset):
         start_index: Optional[int] = None,
         end_index: Optional[int] = None,
         max_atoms: Optional[int] = None,
-        conformer_selection: str = "first",
+        conformer_selection: str = "all",
         random_seed: int = 0,
         topology_tolerance: float = 0.4,
         skip_topology_validation: bool = False,
@@ -244,23 +244,23 @@ class GEOMDrugs(datatypes.MolecularDataset):
     def _setup_indices(self):
         """Setup indices based on conformer selection mode."""
         n_conformers = len(self._positions)
-        unique_mols = np.unique(self._mol_indices)
         
         if self.conformer_selection == "all":
             # Use all conformers
             self._indices = np.arange(n_conformers)
-        elif self.conformer_selection == "first":
-            # Use first conformer of each molecule
-            self._indices = np.array([
-                np.where(self._mol_indices == mol_idx)[0][0]
-                for mol_idx in unique_mols
-            ])
-        elif self.conformer_selection == "random":
-            # Use random conformer of each molecule
-            self._indices = np.array([
-                self._rng.choice(np.where(self._mol_indices == mol_idx)[0])
-                for mol_idx in unique_mols
-            ])
+        else:
+            # Find first index of each molecule (much faster than np.where in a loop)
+            # mol_indices is sorted, so we can use np.unique with return_index
+            unique_mols, first_indices = np.unique(self._mol_indices, return_index=True)
+            
+            if self.conformer_selection == "first":
+                self._indices = first_indices
+            elif self.conformer_selection == "random":
+                # Get count of conformers per molecule
+                counts = np.diff(np.append(first_indices, n_conformers))
+                # Random offset within each molecule's conformers
+                offsets = np.array([self._rng.integers(0, c) for c in counts])
+                self._indices = first_indices + offsets
         
         # Apply max_atoms filter
         if self.max_atoms is not None:
@@ -292,9 +292,7 @@ class GEOMDrugs(datatypes.MolecularDataset):
                 print(f"Downloading {filename}...")
                 utils.download_url(url, raw_dir)
         
-        print("=" * 60)
         print("Running GEOM-Drugs preprocessing pipeline...")
-        print("=" * 60)
         
         for split_name in ["train", "val", "test"]:
             input_path = os.path.join(raw_dir, f"{split_name}_data.pickle")
@@ -376,9 +374,7 @@ class GEOMDrugs(datatypes.MolecularDataset):
             )
             print(f"  Saved to {output_path}")
         
-        print("=" * 60)
         print("Preprocessing complete!")
-        print("=" * 60)
 
     @utils.after_preprocess
     def __len__(self) -> int:
