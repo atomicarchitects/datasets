@@ -1,5 +1,3 @@
-"""GEOM-Drugs with validation and preprocessing from https://github.com/isayevlab/geom-drugs-3dgen-evaluation."""
-
 from typing import Dict, Iterable, Optional, List, Tuple
 import os
 import logging
@@ -123,13 +121,8 @@ def _process_single_molecule_entry(args):
 class GEOMDrugs(datatypes.MolecularDataset):
     """
     The GEOM (Drugs) dataset from https://www.nature.com/articles/s41597-022-01288-4.
-    
-    Uses preprocessed numpy arrays for fast loading. SMILES are properly aligned
-    with 3D coordinates.
-    
-    Preprocessing (download + sanitization + numpy caching) is done automatically 
-    if processed files don't exist.
-    
+    Preprocessing code adapted from https://github.com/isayevlab/geom-drugs-3dgen-evaluation.
+
     Args:
         root_dir: Directory to store/load data
         split: Which split to use ('train', 'val', 'test')
