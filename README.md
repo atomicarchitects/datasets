@@ -22,7 +22,7 @@ pip install git+https://github.com/atomicarchitects/datasets
 
 ## Example
 ```python
-from atomic_datasets import QM9
+from atomic_datasets import QM9, GEOMDrugs
 
 # The first access will trigger preprocessing which may take some time,
 # but once preprocessed, load speeds should be fast!
@@ -31,9 +31,12 @@ dataset = QM9(
     split="train",
 )
 
+# Or,
+# dataset = GEOMDrugs(root_dir="data/geom_drugs", split="train")
+
 for graph in dataset:
-    positions = graph["nodes"]["positions"]  # (N, 3) array of 3D coordinates
-    species = graph["nodes"]["species"]      # (N,) array of atomic species indices
+    positions = graph["nodes"]["positions"]   # (N, 3) array of 3D coordinates
+    species = graph["nodes"]["species"]       # (N,) array of atomic species indices
     atom_types = graph["nodes"]["atom_types"] # (N,) array of element symbols
     properties = graph["properties"]          # dict of molecular properties
     
@@ -41,6 +44,7 @@ for graph in dataset:
     print(f"  Atoms: {atom_types}")
     print(f"  HOMO-LUMO gap: {properties['gap']:.4f} Ha")
 ```
+or:
 
 ### Data Format
 
@@ -63,10 +67,7 @@ Each sample is a dictionary with the following structure:
 }
 ```
 
-Available properties vary by dataset. For QM9:
-- `mu`, `alpha`, `homo`, `lumo`, `gap`, `r2`, `zpve`
-- `u0`, `u298`, `h298`, `g298`, `cv`
-- `smiles`, `mol_id`
+Available properties vary by dataset. 
 
 ## License
 
