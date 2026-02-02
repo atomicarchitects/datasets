@@ -30,8 +30,7 @@ dataset = QM9(
     root_dir="data/qm9",
     split="train",
 )
-
-# Or,
+# Or, for example:
 # dataset = GEOMDrugs(root_dir="data/geom_drugs", split="train")
 
 for graph in dataset:
