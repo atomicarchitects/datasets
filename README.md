@@ -24,8 +24,8 @@ pip install git+https://github.com/atomicarchitects/datasets
 ```python
 from atomic_datasets import QM9
 
-# Initial preprocessing may take some time,
-# but once preprocessed, read speeds should be fast!
+# The first access will trigger preprocessing which may take some time,
+# but once preprocessed, load speeds should be fast!
 dataset = QM9(
     root_dir="data/qm9",
     split="train",
