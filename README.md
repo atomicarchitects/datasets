@@ -16,18 +16,15 @@ Install directly from GitHub with [pip](https://pypi.org/project/pip/):
 ```bash
 pip install git+https://github.com/atomicarchitects/datasets
 ```
-or [uv](https://docs.astral.sh/uv/getting-started/installation/):
-```bash
-uv pip install git+https://github.com/atomicarchitects/datasets
-```
 
 ## Example
 ```python
-from atomic_datasets import QM9
+from atomic_datasets import GEOMDrugs
 
-dataset = QM9(
+# Initial preprocessing may take some time.
+dataset = GEOMDrugs(
     root_dir="data/qm9",
-    check_with_rdkit=True,
+    split="train",
 )
 
 for graph in dataset:
@@ -73,8 +70,18 @@ and the original papers for the relevant datasets:
 	year = {2022}
 }
 ```
-Preprocessed GEOM (Drugs) data was obtained from:
+Preprocessing code for GEOM (Drugs) was obtained from:
 ```bibtex
+@misc{nikitin2025geomdrugsrevisitedchemicallyaccurate,
+      title={GEOM-Drugs Revisited: Toward More Chemically Accurate Benchmarks for 3D Molecule Generation}, 
+      author={Filipp Nikitin and Ian Dunn and David Ryan Koes and Olexandr Isayev},
+      year={2025},
+      eprint={2505.00169},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2505.00169},
+}
+
 @dataset{geom-preprocessed,
 	author = {Alex Morehead and Jianlin, Cheng},
 	doi = {10.5281/zenodo.7881981},
@@ -84,7 +91,7 @@ Preprocessed GEOM (Drugs) data was obtained from:
 	url = {https://doi.org/10.5281/zenodo.7881981},
 	version = {1.2.0},
 	year = 2023,
-	bdsk-url-1 = {https://doi.org/10.5281/zenodo.7881981}}
+	bdsk-url-1 = {https://doi.org/10.5281/zenodo.7881981}} 
 ```
 - tmQM:
 ```bibtex
