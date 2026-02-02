@@ -3,6 +3,7 @@ import os
 import logging
 
 import numpy as np
+import pandas as pd
 import tqdm
 
 from atomic_datasets import utils
@@ -68,7 +69,7 @@ class QM9(datatypes.MolecularDataset):
         self._atom_types = None     # List of (N,) arrays
         self._n_atoms = None        # Array of molecule sizes
         self._indices = None        # Indices after filtering/splitting
-        self._properties = None     # List of property dicts (optional)
+        self._properties = None     # List of property dicts
 
         if self.use_Anderson_splits and self.split is None:
             raise ValueError("When use_Anderson_splits is True, split must be provided.")
@@ -91,6 +92,10 @@ class QM9(datatypes.MolecularDataset):
         if self.preprocessed:
             return
         self.preprocessed = True
+
+        # Print README path
+        readme_path = os.path.join(self.root_dir, "QM9_README")
+        print("Dataset description available at:", os.path.abspath(readme_path))
 
         # Check for cached preprocessed data
         cache_file = os.path.join(self.root_dir, "qm9_preprocessed.npz")
@@ -119,13 +124,14 @@ class QM9(datatypes.MolecularDataset):
     
     def _load_from_cache(self, cache_file: str):
         """Load preprocessed data from cache."""
-        print(f"Loading QM9 from cache: {cache_file}")
+        print(f"Loading QM9 from cache: {os.path.abspath(cache_file)}")
         data = np.load(cache_file, allow_pickle=True)
         
         self._positions = list(data['positions'])
         self._species = list(data['species'])
         self._atom_types = list(data['atom_types'])
         self._n_atoms = data['n_atoms']
+        self._properties = list(data['properties'])
         
         print(f"Loaded {len(self._positions)} molecules from cache")
     
@@ -138,6 +144,7 @@ class QM9(datatypes.MolecularDataset):
             species=np.array(self._species, dtype=object),
             atom_types=np.array(self._atom_types, dtype=object),
             n_atoms=self._n_atoms,
+            properties=np.array(self._properties, dtype=object),
         )
     
     def _load_from_raw(self):
@@ -150,9 +157,15 @@ class QM9(datatypes.MolecularDataset):
         raw_mols_path = os.path.join(self.root_dir, "gdb9.sdf")
         supplier = Chem.SDMolSupplier(raw_mols_path, removeHs=False, sanitize=False)
         
+        # Load properties from CSV
+        properties_csv_path = os.path.join(self.root_dir, "gdb9.sdf.csv")
+        properties_df = pd.read_csv(properties_csv_path)
+        properties_df.set_index("mol_id", inplace=True)
+        
         self._positions = []
         self._species = []
         self._atom_types = []
+        self._properties = []
         n_atoms_list = []
         
         for index, mol in enumerate(tqdm.tqdm(supplier, desc="Loading QM9")):
@@ -174,9 +187,16 @@ class QM9(datatypes.MolecularDataset):
             species = self.atomic_numbers_to_species(atomic_numbers)
             atom_types = utils.atomic_numbers_to_symbols(atomic_numbers)
             
+            # Extract properties from CSV
+            mol_id = mol.GetProp("_Name")
+            mol_properties = properties_df.loc[mol_id].to_dict()
+            mol_properties["mol_id"] = mol_id
+            mol_properties["smiles"] = Chem.MolToSmiles(mol)
+            
             self._positions.append(positions)
             self._species.append(species)
             self._atom_types.append(atom_types)
+            self._properties.append(mol_properties)
             n_atoms_list.append(len(positions))
         
         self._n_atoms = np.array(n_atoms_list, dtype=np.int32)
@@ -208,6 +228,7 @@ class QM9(datatypes.MolecularDataset):
             globals=None,
             n_node=np.asarray([self._n_atoms[real_idx]]),
             n_edge=None,
+            properties=self._properties[real_idx],
         )
 
     @utils.after_preprocess
