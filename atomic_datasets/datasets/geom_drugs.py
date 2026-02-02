@@ -58,6 +58,7 @@ class GEOMDrugs(datatypes.MolecularDataset):
         self._raw_data = None          # Memory-mapped numpy array
         self._mol_boundaries = None    # Array of molecule start/end indices
         self._indices = None           # Indices into molecules (after splits/filtering)
+        self._smiles = None            # List of SMILES strings
 
         if self.use_GCDM_splits and self.split is None:
             raise ValueError("When use_GCDM_splits is True, split must be provided.")
@@ -93,6 +94,9 @@ class GEOMDrugs(datatypes.MolecularDataset):
             self.root_dir, "data", "EDM", "GEOM", "GEOM_drugs_30.npy"
         )
         self._raw_data = np.load(conformation_file, mmap_mode='r')
+        
+        # Load SMILES strings
+        self._smiles = _load_smiles(self.root_dir)
         
         # Determine which molecule indices to use
         if self.use_GCDM_splits:
@@ -135,8 +139,8 @@ class GEOMDrugs(datatypes.MolecularDataset):
         
         return atomic_numbers, positions
     
-    def _make_graph(self, atomic_numbers: np.ndarray, positions: np.ndarray) -> datatypes.Graph:
-        """Create a Graph object from atomic numbers and positions."""
+    def _make_graph(self, atomic_numbers: np.ndarray, positions: np.ndarray, smiles: str) -> datatypes.Graph:
+        """Create a Graph object from atomic numbers, positions, and SMILES."""
         species = self.atomic_numbers_to_species(atomic_numbers)
         atom_types = utils.atomic_numbers_to_symbols(atomic_numbers)
         
@@ -152,6 +156,7 @@ class GEOMDrugs(datatypes.MolecularDataset):
             n_edge=None,
             n_node=np.array([len(atomic_numbers)]),
             globals=None,
+            properties=dict(smiles=smiles),
         )
 
     @utils.after_preprocess
@@ -168,13 +173,15 @@ class GEOMDrugs(datatypes.MolecularDataset):
         
         mol_idx = self._indices[idx]
         atomic_numbers, positions = self._get_molecule_data(mol_idx)
-        return self._make_graph(atomic_numbers, positions)
+        smiles = self._smiles[mol_idx]
+        return self._make_graph(atomic_numbers, positions, smiles)
 
     @utils.after_preprocess
     def __iter__(self) -> Iterable[datatypes.Graph]:
         """Iterate over all molecules."""
         for i in range(len(self)):
             yield self[i]
+
 
 def _download_if_needed(root_dir: str):
     """Download and extract GEOM-Drugs if not already present."""
@@ -227,6 +234,27 @@ def _get_or_compute_boundaries(root_dir: str) -> np.ndarray:
     print(f"  {len(boundaries) - 1} molecules")
     
     return boundaries
+
+
+def _load_smiles(root_dir: str) -> list:
+    """Load SMILES strings from file."""
+    smiles_file = os.path.join(
+        root_dir, "data", "EDM", "GEOM", "GEOM_drugs_smiles.txt"
+    )
+    
+    if not os.path.exists(smiles_file):
+        raise FileNotFoundError(
+            f"SMILES file not found: {smiles_file}. "
+            "Please ensure GEOM_drugs_smiles.txt is in the GEOM directory."
+        )
+    
+    smiles_list = []
+    with open(smiles_file, 'r') as f:
+        for line in f:
+            smiles_list.append(line.strip())
+    
+    print(f"Loaded {len(smiles_list)} SMILES strings")
+    return smiles_list
 
 
 def _get_GCDM_splits(root_dir: str) -> Dict[str, np.ndarray]:
