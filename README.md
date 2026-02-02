@@ -71,29 +71,6 @@ and the original papers for the relevant datasets:
 	year = {2022}
 }
 ```
-Preprocessing code for GEOM (Drugs) was obtained from:
-```bibtex
-@misc{nikitin2025geomdrugsrevisitedchemicallyaccurate,
-      title={GEOM-Drugs Revisited: Toward More Chemically Accurate Benchmarks for 3D Molecule Generation}, 
-      author={Filipp Nikitin and Ian Dunn and David Ryan Koes and Olexandr Isayev},
-      year={2025},
-      eprint={2505.00169},
-      archivePrefix={arXiv},
-      primaryClass={cs.LG},
-      url={https://arxiv.org/abs/2505.00169},
-}
-
-@dataset{geom-preprocessed,
-	author = {Alex Morehead and Jianlin, Cheng},
-	doi = {10.5281/zenodo.7881981},
-	month = apr,
-	publisher = {Zenodo},
-	title = {Replication Data for: EDM},
-	url = {https://doi.org/10.5281/zenodo.7881981},
-	version = {1.2.0},
-	year = 2023,
-	bdsk-url-1 = {https://doi.org/10.5281/zenodo.7881981}} 
-```
 - tmQM:
 ```bibtex
 @article{tmQM,
@@ -215,6 +192,25 @@ Preprocessing code adapted from:
       archivePrefix={arXiv},
       primaryClass={cs.LG},
       url={https://arxiv.org/abs/2302.04313}, 
+}
+@misc{nikitin2025geomdrugsrevisitedchemicallyaccurate,
+      title={GEOM-Drugs Revisited: Toward More Chemically Accurate Benchmarks for 3D Molecule Generation}, 
+      author={Filipp Nikitin and Ian Dunn and David Ryan Koes and Olexandr Isayev},
+      year={2025},
+      eprint={2505.00169},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2505.00169},
+}
+
+@misc{vignac2023midimixedgraph3d,
+      title={MiDi: Mixed Graph and 3D Denoising Diffusion for Molecule Generation}, 
+      author={Clement Vignac and Nagham Osman and Laura Toni and Pascal Frossard},
+      year={2023},
+      eprint={2302.09048},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2302.09048}, 
 }
 ```
 
