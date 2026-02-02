@@ -43,7 +43,6 @@ for graph in dataset:
     print(f"  Atoms: {atom_types}")
     print(f"  HOMO-LUMO gap: {properties['gap']:.4f} Ha")
 ```
-or:
 
 ### Data Format
 
