@@ -168,7 +168,7 @@ class GEOMDrugs(datatypes.MolecularDataset):
         random_seed: int = 0,
         topology_tolerance: float = 0.4,
         skip_topology_validation: bool = False,
-        canonicalize_atom_order: bool = True,
+        canonicalize_atom_order: bool = False,
     ):
         super().__init__()
         self.root_dir = root_dir
