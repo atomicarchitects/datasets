@@ -81,7 +81,7 @@ def _validate_topology(mol, tolerance=0.4):
 
 def _process_single_molecule_entry(args):
     """Process a single (smiles, mols) entry. Module-level for pickling."""
-    smiles, mols, skip_topology, topology_tolerance, atomic_numbers_array = args
+    smiles, mols, skip_topology, topology_tolerance, atomic_numbers_array, canonicalize_atom_order = args
     
     # Validate SMILES
     reference_mol = Chem.MolFromSmiles(smiles)
@@ -107,7 +107,21 @@ def _process_single_molecule_entry(args):
         positions = np.array(conformer.GetPositions(), dtype=np.float32)
         atomic_numbers = np.array([atom.GetAtomicNum() for atom in mol.GetAtoms()])
         species = np.searchsorted(atomic_numbers_array, atomic_numbers)
-        
+
+        # Apply canonical atom ordering
+        if canonicalize_atom_order:
+            ranks = Chem.CanonicalRankAtoms(mol)
+            order = np.argsort(ranks)
+            positions = positions[order]
+            atomic_numbers = atomic_numbers[order]
+            species = species[order]
+            
+            # Renumber the mol to match the new ordering
+            mol = Chem.RenumberAtoms(mol, order.tolist())
+
+        #  Save SMILES with explicit hydrogens.
+        smiles = Chem.MolToSmiles(mol, allHsExplicit=True)
+
         conformer_data.append({
             'positions': positions,
             'atomic_numbers': atomic_numbers,
@@ -154,6 +168,7 @@ class GEOMDrugs(datatypes.MolecularDataset):
         random_seed: int = 0,
         topology_tolerance: float = 0.4,
         skip_topology_validation: bool = False,
+        canonicalize_atom_order: bool = True,
     ):
         super().__init__()
         self.root_dir = root_dir
@@ -165,6 +180,7 @@ class GEOMDrugs(datatypes.MolecularDataset):
         self.random_seed = random_seed
         self.topology_tolerance = topology_tolerance
         self.skip_topology_validation = skip_topology_validation
+        self.canonicalize_atom_order = canonicalize_atom_order
 
         self.preprocessed = False
         
@@ -206,6 +222,7 @@ class GEOMDrugs(datatypes.MolecularDataset):
         # Check if processed cache exists
         # Use different cache file if topology validation is skipped
         cache_suffix = "_no_topo" if self.skip_topology_validation else ""
+        cache_suffix += "_canon" if self.canonicalize_atom_order else ""
         cache_file = os.path.join(self.root_dir, "processed", f"{self.split}{cache_suffix}.npz")
         
         if not os.path.exists(cache_file):
@@ -290,6 +307,7 @@ class GEOMDrugs(datatypes.MolecularDataset):
         for split_name in ["train", "val", "test"]:
             input_path = os.path.join(raw_dir, f"{split_name}_data.pickle")
             cache_suffix = "_no_topo" if self.skip_topology_validation else ""
+            cache_suffix += "_canon" if self.canonicalize_atom_order else ""
             output_path = os.path.join(processed_dir, f"{split_name}{cache_suffix}.npz")
             
             print(f"\nProcessing {split_name} split...")
@@ -302,12 +320,12 @@ class GEOMDrugs(datatypes.MolecularDataset):
             
             # Prepare arguments for parallel processing
             args_list = [
-                (smiles, mols, self.skip_topology_validation, self.topology_tolerance, self.ATOMIC_NUMBERS)
+                (smiles, mols, self.skip_topology_validation, self.topology_tolerance, self.ATOMIC_NUMBERS, self.canonicalize_atom_order)
                 for smiles, mols in data
             ]
             
             # Process in parallel
-            n_workers = min(multiprocessing.cpu_count(), 8)
+            n_workers = min(multiprocessing.cpu_count(), 16)
             print(f"  Using {n_workers} workers...")
             
             all_positions = []
