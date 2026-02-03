@@ -47,6 +47,7 @@ class QM9(datatypes.MolecularDataset):
         check_validity: bool = False,
         start_index: Optional[int] = None,
         end_index: Optional[int] = None,
+        canonicalize_atom_order: bool = False,
     ):
         super().__init__()
 
@@ -60,6 +61,7 @@ class QM9(datatypes.MolecularDataset):
         self.check_validity = check_validity
         self.start_index = start_index
         self.end_index = end_index
+        self.canonicalize_atom_order = canonicalize_atom_order
         
         self.preprocessed = False
         
@@ -187,12 +189,22 @@ class QM9(datatypes.MolecularDataset):
             species = self.atomic_numbers_to_species(atomic_numbers)
             atom_types = utils.atomic_numbers_to_symbols(atomic_numbers)
             
+            if self.canonicalize_atom_order:
+                ranks = Chem.CanonicalRankAtoms(mol)
+                order = np.argsort(ranks)
+                positions = positions[order]
+                atomic_numbers = atomic_numbers[order]
+                species = species[order]
+
+                # Renumber the mol to match the new ordering
+                mol = Chem.RenumberAtoms(mol, order.tolist())
+
             # Extract properties from CSV
             mol_id = mol.GetProp("_Name")
             mol_properties = properties_df.loc[mol_id].to_dict()
             mol_properties["mol_id"] = mol_id
-            mol_properties["smiles"] = Chem.MolToSmiles(mol)
-            
+            mol_properties["smiles"] = Chem.MolToSmiles(mol, allHsExplicit=True)
+
             self._positions.append(positions)
             self._species.append(species)
             self._atom_types.append(atom_types)
