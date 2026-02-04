@@ -14,7 +14,7 @@ def save_as_xyz(graph: datatypes.Graph, filepath: str, comment: str = "") -> Non
     atom_types = graph['nodes']['atom_types']
     n_atoms = len(positions)
     
-    if not comment and graph['properties'] and 'smiles' in graph['properties']:
+    if not comment and graph.get('properties') and 'smiles' in graph.get('properties', {}):
         comment = graph['properties']['smiles']
     
     with open(filepath, 'w') as f:

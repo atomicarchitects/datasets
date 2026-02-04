@@ -250,10 +250,6 @@ class QM9(datatypes.MolecularDataset):
             yield self[i]
 
 
-# =============================================================================
-# Helper functions
-# =============================================================================
-
 def _download_if_needed(root_dir: str):
     """Download and extract QM9 if not already present."""
     raw_mols_path = os.path.join(root_dir, "gdb9.sdf")
