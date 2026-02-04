@@ -1,9 +1,6 @@
 import os
 from typing import Dict, Iterable, Optional
 import numpy as np
-import torch
-from torch_geometric.data.data import Data, DataEdgeAttr, DataTensorAttr
-from torch_geometric.data.storage import GlobalStorage
 from rdkit.Chem.rdchem import Mol
 import tqdm
 import random
@@ -116,6 +113,10 @@ class ChemBL3DStereo(datatypes.MolecularDataset):
 
 def load_chembl3d_stereo(root_dir: str, split: str) -> Iterable[datatypes.Graph]:
     """Obtained from https://github.com/isayevlab/LoQI."""
+    import torch
+    from torch_geometric.data.data import Data, DataEdgeAttr, DataTensorAttr
+    from torch_geometric.data.storage import GlobalStorage
+
     split_file = os.path.join(root_dir, "chembl3d_stereo", "processed", f"{split}_h_nomol.pt")
     torch.serialization.add_safe_globals([Data, DataEdgeAttr, DataTensorAttr, GlobalStorage, Mol])
     data, batch = torch.load(split_file)

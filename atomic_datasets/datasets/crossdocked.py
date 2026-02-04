@@ -8,7 +8,6 @@ import pandas as pd
 import random
 import rdkit.Chem as Chem
 import tqdm
-import torch
 
 from atomic_datasets import utils
 from atomic_datasets import datatypes
@@ -122,7 +121,7 @@ class CrossDocked(datatypes.MolecularDataset):
         return {i: atomic_number for i, atomic_number in enumerate(CrossDocked.get_atomic_numbers())}
 
 def preprocess_directory(root_dir: str) -> None:
-    """Preprocess the files for the QM9 dataset."""
+    """Preprocess the files for the CrossDocked dataset."""
     raw_mols_path = os.path.join(root_dir, "crossdocked_pocket10_with_protein")
     if os.path.exists(raw_mols_path):
         print(f"Using downloaded data: {raw_mols_path}")
@@ -222,6 +221,7 @@ def get_SBDD_splits(
     root_dir: str,
 ) -> Dict[str, np.ndarray]:
     """Use splits from Luo et al. (https://proceedings.neurips.cc/paper/2021/hash/314450613369e0ee72d0da7f6fee773c-Abstract.html)."""
+    import torch
 
     train_test_splits = torch.load(os.path.join(root_dir, "split_by_name.pt"))
     splits = {split: [x[0] for x in train_test_splits[split]] for split in train_test_splits}
