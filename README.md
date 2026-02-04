@@ -7,12 +7,14 @@ This repository provides an easy interface to the following 3D molecular dataset
 - QM9
 - GEOM (Drugs)
 - tmQM
+- ChemBL3D
+
+We have preliminary support for the following protein datasets:
 - CATH
 - Miniproteins
 - CrossDocked
-- ChemBL3D
 
-as well as the following toy datasets:
+We also provide some toy datasets for testing:
 - Platonic Solids
 - 3D Tetris Pieces
 
@@ -29,11 +31,11 @@ from atomic_datasets import QM9, GEOMDrugs
 # The first access will trigger preprocessing which may take some time,
 # but once preprocessed, load speeds should be fast!
 dataset = QM9(
-    root_dir="data/qm9",
+    root_dir="data/",
     split="train",
 )
 # Or, for example:
-# dataset = GEOMDrugs(root_dir="data/geom_drugs", split="train")
+# dataset = GEOMDrugs(root_dir="data/", split="train")
 
 for graph in dataset:
     positions = graph["nodes"]["positions"]   # (N, 3) array of 3D coordinates
@@ -136,6 +138,15 @@ If you use this repository, please cite:
 	title = {tmQM Dataset---Quantum Geometries and Properties of 86k Transition Metal Complexes},
 	volume = {60},
 	year = {2020}
+}
+```
+
+### ChEMBL3D
+```bibtex
+@article{nikitin2025scalable,
+  title={Scalable Low-Energy Molecular Conformer Generation with Quantum Mechanical Accuracy},
+  author={Nikitin, Filipp and Anstine, Dylan M and Zubatyuk, Roman and Paliwal, Saee Gopal and Isayev, Olexandr},
+  year={2025}
 }
 ```
 
