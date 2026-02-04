@@ -9,3 +9,4 @@ from .rdkit import (
 from .download import clone_url, download_url, extract_zip, extract_gz, extract_tar
 from .decorators import after_preprocess
 from .cache import cache_to_file
+from .xyz import save_as_xyz

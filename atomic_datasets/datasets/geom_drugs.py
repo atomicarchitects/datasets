@@ -2,6 +2,7 @@ from typing import Dict, Iterable, Optional, List, Tuple
 import os
 import logging
 import json
+import zipfile
 
 import numpy as np
 
@@ -10,40 +11,7 @@ from atomic_datasets import utils
 
 
 # Zenodo URL for preprocessed data
-GEOM_DRUGS_ZENODO_URL = "https://zenodo.org/record/18484634/files/"
-
-GEOM_DRUGS_FILES = {
-    "train": [
-        "train_positions.npy",
-        "train_species.npy", 
-        "train_atom_types.npy",
-        "train_offsets.npy",
-        "train_n_atoms.npy",
-        "train_mol_indices.npy",
-        "train_atom_type_lookup.npy",
-        "train_smiles.json",
-    ],
-    "val": [
-        "val_positions.npy",
-        "val_species.npy",
-        "val_atom_types.npy", 
-        "val_offsets.npy",
-        "val_n_atoms.npy",
-        "val_mol_indices.npy",
-        "val_atom_type_lookup.npy",
-        "val_smiles.json",
-    ],
-    "test": [
-        "test_positions.npy",
-        "test_species.npy",
-        "test_atom_types.npy",
-        "test_offsets.npy",
-        "test_n_atoms.npy",
-        "test_mol_indices.npy",
-        "test_atom_type_lookup.npy",
-        "test_smiles.json",
-    ],
-}
+GEOM_DRUGS_ZENODO_URL = "https://zenodo.org/record/18484634/files/geom_drugs_processed.zip"
 
 
 class GEOMDrugs(datatypes.MolecularDataset):
@@ -132,7 +100,7 @@ class GEOMDrugs(datatypes.MolecularDataset):
             return
         self.preprocessed = True
 
-        # Download if needed
+        # Download and extract if needed
         self._ensure_downloaded()
         
         # Load data
@@ -143,17 +111,30 @@ class GEOMDrugs(datatypes.MolecularDataset):
         self._setup_indices()
     
     def _ensure_downloaded(self):
-        """Download preprocessed files from Zenodo if not present."""
+        """Download and extract preprocessed files from Zenodo if not present."""
         os.makedirs(self.root_dir, exist_ok=True)
         
-        files_needed = GEOM_DRUGS_FILES[self.split]
+        # Check if data is already extracted by looking for a key file
+        marker_file = os.path.join(self.root_dir, "train_positions.npy")
+        if os.path.exists(marker_file):
+            return
         
-        for filename in files_needed:
-            filepath = os.path.join(self.root_dir, filename)
-            if not os.path.exists(filepath):
-                url = GEOM_DRUGS_ZENODO_URL + filename
-                print(f"Downloading {filename}...")
-                utils.download_url(url, self.root_dir)
+        # Download zip file
+        zip_filename = "geom_drugs_processed.zip"
+        zip_path = os.path.join(self.root_dir, zip_filename)
+        
+        if not os.path.exists(zip_path):
+            print(f"Downloading {zip_filename}...")
+            utils.download_url(GEOM_DRUGS_ZENODO_URL, self.root_dir, filename=zip_filename)
+        
+        # Extract zip file
+        print(f"Extracting {zip_filename}...")
+        with zipfile.ZipFile(zip_path, 'r') as zf:
+            zf.extractall(self.root_dir)
+        
+        # Optionally remove the zip file to save space
+        os.remove(zip_path)
+        print("Extraction complete.")
     
     def _load_data(self):
         """Load preprocessed data from numpy files."""

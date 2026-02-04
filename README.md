@@ -9,6 +9,8 @@ This repository provides an easy interface to the following 3D molecular dataset
 - tmQM
 - CATH
 - Miniproteins
+- CrossDocked
+- ChemBL3D
 
 as well as the following toy datasets:
 - Platonic Solids
@@ -42,6 +44,13 @@ for graph in dataset:
     print(f"Molecule: {properties['smiles']}")
     print(f"  Atoms: {atom_types}")
     print(f"  HOMO-LUMO gap: {properties['gap']:.4f} Ha")
+```
+
+We also provide some simple utilities. For example, to save a graph as a `.xyz` file:
+```python
+from atomic_datasets import utils
+
+utils.save_xyz(graph, "example_graph")
 ```
 
 ### Data Format
