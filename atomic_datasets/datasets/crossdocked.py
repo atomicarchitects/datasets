@@ -31,11 +31,7 @@ class CrossDocked(datatypes.MolecularDataset):
         cache_dir: Optional[str] = None,  # New parameter to specify cache directory
     ):
         super().__init__()
-
-        if root_dir is None:
-            raise ValueError("root_dir must be provided.")
-
-        self.root_dir = root_dir
+        self.root_dir = os.path.join(root_dir, "crossdocked")
         self.split = split
         self.use_SBDD_splits = use_SBDD_splits
         self.start_index = start_index

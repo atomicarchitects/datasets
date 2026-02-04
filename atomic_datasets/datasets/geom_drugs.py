@@ -52,7 +52,7 @@ class GEOMDrugs(datatypes.MolecularDataset):
         mmap_mode: Optional[str] = 'r',
     ):
         super().__init__()
-        self.root_dir = root_dir
+        self.root_dir = os.path.join(root_dir, "geom_drugs")
         self.split = split
         self.start_index = start_index
         self.end_index = end_index

@@ -53,10 +53,7 @@ class tmQM(datatypes.MolecularDataset):
     ):
         super().__init__()
 
-        if root_dir is None:
-            raise ValueError("root_dir must be provided.")
-
-        self.root_dir = root_dir
+        self.root_dir = os.path.join(root_dir, "tmqm")
         self.split = split
         self.start_index = start_index
         self.end_index = end_index

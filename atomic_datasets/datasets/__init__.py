@@ -11,5 +11,5 @@ from .proteins import (
     Miniproteins,
     get_amino_acids,
 )
-from .chembl3d_stereo import ChemBL3DStereo
+from .chembl3d import ChEMBL3D
 from .crossdocked import CrossDocked

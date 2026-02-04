@@ -51,10 +51,7 @@ class QM9(datatypes.MolecularDataset):
     ):
         super().__init__()
 
-        if root_dir is None:
-            raise ValueError("root_dir must be provided.")
-
-        self.root_dir = root_dir
+        self.root_dir = os.path.join(root_dir, "qm9")
         self.split = split
         self.use_Anderson_splits = use_Anderson_splits
         self.check_with_rdkit = check_with_rdkit

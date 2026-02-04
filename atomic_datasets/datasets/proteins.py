@@ -86,11 +86,7 @@ class ProteinsGeneric(datatypes.MolecularDataset):
         max_residues: Optional[int] = None,
     ):
         super().__init__()
-
-        if root_dir is None:
-            raise ValueError("root_dir must be provided.")
-
-        self.root_dir = root_dir
+        self.root_dir = os.path.join(root_dir, "proteins")
         self.use_random_splits = use_random_splits
         self.start_index = start_index
         self.end_index = end_index
