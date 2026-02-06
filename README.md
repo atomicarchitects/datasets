@@ -7,7 +7,7 @@ This repository provides an easy interface to the following 3D molecular dataset
 - QM9
 - GEOM (Drugs)
 - tmQM
-- ChemBL3D
+- ChEMBL3D
 
 We have preliminary support for the following protein datasets:
 - CATH
