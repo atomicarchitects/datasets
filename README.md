@@ -3,25 +3,34 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-This repository provides an easy interface to the following 3D molecular datasets:
-- QM9
-- GEOM (Drugs)
-- tmQM
-- ChEMBL3D
+This repository provides an easy interface to the following 3D molecular datasets in [PyTorch](https://pytorch.org/) and [JAX](https://docs.jax.dev/en/latest/):
+- [QM9](https://www.nature.com/articles/sdata201422): ~134000 small organic molecules with quantum chemical properties.
+- [GEOM (Drugs)](https://www.nature.com/articles/s41597-022-01288-4): a subset of the GEOM dataset containing ~300000 drug-like molecules with multiple conformers and properties.
+- [tmQM](https://pubs.acs.org/doi/10.1021/acs.jcim.0c01041): ~86000 transition metal complexes with quantum chemical properties.
+- [ChEMBL3D](https://chemrxiv.org/doi/10.26434/chemrxiv-2025-k4h7v): ~1.8 million drug-like molecules with low-energy conformers and properties.
+
+Our hope is to standardize [processing](https://arxiv.org/abs/2505.00169v2) and splits which have long been [inconsistent](https://arxiv.org/abs/2505.00518) across different papers, and to provide a common interface across programming frameworks for working with these datasets. 
 
 We have preliminary support for the following protein datasets:
-- CATH
-- Miniproteins
-- CrossDocked
+- [Miniproteins](https://pubmed.ncbi.nlm.nih.gov/35332283/): a collection of protein-binding proteins upto 65 residues in length.
+- [CrossDocked](https://pubs.acs.org/doi/full/10.1021/acs.jcim.0c00411?casa_token=2OPWUPi2RRYAAAAA%3A_1AHwm3Btx8fT00JW78Et9v8il5KU_F8mR49MPH3owHoFlVDWzlE521XtH-_Sudhskke8V9O5YL0): 
 
 We also provide some toy datasets for testing:
 - Platonic Solids
 - 3D Tetris Pieces
 
+
 ## Installation
-Install directly from GitHub with [pip](https://pypi.org/project/pip/):
+
+Install directly from PyPI with [pip](https://pypi.org/project/pip/):
+```
+pip install atomic-datasets
+```
+or, from source:
 ```bash
-pip install git+https://github.com/atomicarchitects/datasets
+git clone https://github.com/atomicarchitects/datasets.git
+cd datasets
+pip install -e .
 ```
 
 ## Example
@@ -77,6 +86,39 @@ Each sample is a dictionary with the following structure:
 ```
 
 Available properties vary by dataset. 
+
+## Wrappers for PyTorch and JAX
+
+We provide wrappers for both [PyTorch](https://pytorch.org/) via [PyTorch Geometric](https://pytorch-geometric.readthedocs.io/en/latest/):
+```python
+from atomic_datasets import Tetris
+from atomic_datasets.wrappers import PyTorchGeometricDataset
+from torch_geometric.loader import DataLoader
+
+dataset = PyTorchGeometricDataset(Tetris())
+loader = DataLoader(dataset, batch_size=32, shuffle=True)
+
+for batch in loader:
+    print(batch.pos.shape)      # (total_atoms_in_batch, 3)
+    print(batch.species.shape)  # (total_atoms_in_batch,)
+    print(batch.batch.shape)    # (total_atoms_in_batch,)
+```
+
+and [JAX](https://docs.jax.dev/en/latest/) via [Jraph](https://github.com/google-deepmind/jraph):
+```python
+from atomic_datasets import Tetris
+from atomic_datasets.wrappers import JraphDataset
+import jraph
+
+dataset = JraphDataset(Tetris())
+batch = jraph.batch([dataset[i] for i in range(4)])
+
+print(batch.nodes["positions"].shape)  # (16, 3)
+print(batch.nodes["species"].shape)    # (16,)
+print(batch.n_node)                    # [4, 4, 4, 4]
+```
+
+To avoid any version conflicts, this repository does not have hard dependencies on PyTorch, JAX, or their respective graph libraries. You must install them separately if you want to use the wrappers.
 
 ## License
 
@@ -207,6 +249,23 @@ If you use this repository, please cite:
 	title = {Design of protein-binding proteins from the target structure alone},
 	volume = {605},
 	year = {2022}
+}
+```
+
+### CrossDocked
+```bibtex
+@article{doi:10.1021/acs.jcim.0c00411,
+	author = {Francoeur, Paul G. and Masuda, Tomohide and Sunseri, Jocelyn and Jia, Andrew and Iovanisci, Richard B. and Snyder, Ian and Koes, David R.},
+	title = {Three-Dimensional Convolutional Neural Networks and a Cross-Docked Data Set for Structure-Based Drug Design},
+	journal = {Journal of Chemical Information and Modeling},
+	volume = {60},
+	number = {9},
+	pages = {4200-4215},
+	year = {2020},
+	doi = {10.1021/acs.jcim.0c00411},
+	note = {PMID: 32865404},
+	url = {https://doi.org/10.1021/acs.jcim.0c00411},
+	eprint = {https://doi.org/10.1021/acs.jcim.0c00411}
 }
 ```
 

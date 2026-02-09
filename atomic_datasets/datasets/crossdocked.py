@@ -15,8 +15,9 @@ from atomic_datasets import datatypes
 CROSSDOCKED_URL="https://ndownloader.figshare.com/articles/25878871/versions/3"
 SPLIT_URL="https://drive.google.com/uc?export=download&id=1mycOKpphVBQjxEbpn1AwdpQs8tNVbxKY"
 
+
 class CrossDocked(datatypes.MolecularDataset):
-    """The CrossDocked dataset as used by https://proceedings.neurips.cc/paper/2021/hash/314450613369e0ee72d0da7f6fee773c-Abstract.html."""
+    """The CrossDocked dataset from https://pubs.acs.org/doi/full/10.1021/acs.jcim.0c00411?casa_token=2OPWUPi2RRYAAAAA:_1AHwm3Btx8fT00JW78Et9v8il5KU_F8mR49MPH3owHoFlVDWzlE521XtH-_Sudhskke8V9O5YL0 as used by https://proceedings.neurips.cc/paper/2021/hash/314450613369e0ee72d0da7f6fee773c-Abstract.html."""
 
     def __init__(
         self,
