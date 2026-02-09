@@ -1,8 +1,14 @@
+[build-system]
+requires = ["setuptools>=64", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "atomic-datasets"
-description = "Datasets for the Atomic Architects!"
+version = "0.1.0"
+description = "An easy-to-use API for popular 3D molecular datasets"
 authors = [
     { name = "Ameya Daigavane" },
+    { name = "Song Kim" },
 ]
 license = {file = "LICENSE"}
 classifiers = [
@@ -13,7 +19,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Chemistry",
     "Topic :: Database",
 ]
-dynamic = ["version", "readme", "dependencies", "optional-dependencies"]
+dynamic = ["readme", "dependencies", "optional-dependencies"]
 requires-python = ">=3.10"
 
 
