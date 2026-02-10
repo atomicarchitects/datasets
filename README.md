@@ -1,24 +1,25 @@
-# Atomic Datasets
+# atomic-datasets
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-This repository provides an easy (but fast!) interface to the following 3D molecular datasets in [numpy](https://numpy.org/), with wrappers in [PyTorch](https://pytorch.org/) and [JAX](https://docs.jax.dev/en/latest/):
+This repository provides an easy (but fast!) interface to to popular 3D molecular datasets in pure [numpy](https://numpy.org/), with wrappers in [PyTorch](https://pytorch.org/) and [JAX](https://docs.jax.dev/en/latest/)!
+
+<p align="center" width="100%">
+<img width="2948" height="2303" alt="atomic-datasets" src="https://github.com/user-attachments/assets/6cd41eac-144d-4213-937e-494e57435195" />
+</p>
+
+Datasets supported:
 - [QM9](https://www.nature.com/articles/sdata201422): ~134000 small organic molecules with quantum chemical properties.
 - [GEOM (Drugs)](https://www.nature.com/articles/s41597-022-01288-4): a subset of the GEOM dataset containing ~300000 drug-like molecules with multiple conformers and properties.
 - [tmQM](https://pubs.acs.org/doi/10.1021/acs.jcim.0c01041): ~86000 transition metal complexes with quantum chemical properties.
 - [ChEMBL3D](https://chemrxiv.org/doi/10.26434/chemrxiv-2025-k4h7v): ~1800000 drug-like molecules with low-energy conformers and properties.
+- [CrossDocked](https://pubs.acs.org/doi/full/10.1021/acs.jcim.0c00411?casa_token=2OPWUPi2RRYAAAAA%3A_1AHwm3Btx8fT00JW78Et9v8il5KU_F8mR49MPH3owHoFlVDWzlE521XtH-_Sudhskke8V9O5YL0): ~100000 protein-ligand pairs after filtering for high-quality pairs with binding pose RMSD less than 1A.
 
 Our hope is to standardize [processing](https://arxiv.org/abs/2505.00169v2) and splits which have long been [inconsistent](https://arxiv.org/abs/2505.00518) across different papers, and to provide a common interface across programming frameworks for working with these datasets. 
 
-We have preliminary support for the following protein datasets:
-- [Miniproteins](https://pubmed.ncbi.nlm.nih.gov/35332283/): a collection of protein-binding proteins upto 65 residues in length.
-- [CrossDocked](https://pubs.acs.org/doi/full/10.1021/acs.jcim.0c00411?casa_token=2OPWUPi2RRYAAAAA%3A_1AHwm3Btx8fT00JW78Et9v8il5KU_F8mR49MPH3owHoFlVDWzlE521XtH-_Sudhskke8V9O5YL0): 
-
-We also provide some toy datasets for testing:
-- Platonic Solids
-- 3D Tetris Pieces
-
+We have preliminary support for the [Miniproteins](https://pubmed.ncbi.nlm.nih.gov/35332283/) dataset, a collection of protein-binding proteins upto 65 residues in length.
+We also provide some toy datasets (Platonic Solids, 3D Tetris) for testing.
 
 ## Installation
 
@@ -68,7 +69,7 @@ or save a graph as a `.xyz` file:
 utils.save_xyz(graph, "example_graph")
 ```
 
-See [examples/viz.ipynb] for a simple example.
+See [examples/viz.ipynb](./examples/viz.ipynb) for a simple example.
 
 ### Data Format
 
@@ -126,7 +127,7 @@ print(batch.n_node)                    # [4, 4, 4, 4]
 
 To avoid any version conflicts, this repository does not have hard dependencies on PyTorch, JAX, or their respective graph libraries. You must install them separately if you want to use the wrappers.
 
-See [examples/torch.ipynb] and [examples/jax.ipynb] for some simple examples.
+See [examples/torch.ipynb](./examples/torch.ipynb) and [examples/jax.ipynb](./examples/jax.ipynb) for some simple examples.
 
 ## License
 
