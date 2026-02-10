@@ -3,7 +3,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-This repository provides an easy interface to the following 3D molecular datasets in [PyTorch](https://pytorch.org/) and [JAX](https://docs.jax.dev/en/latest/):
+This repository provides an easy (but fast!) interface to the following 3D molecular datasets in [numpy](https://numpy.org/), with wrappers in [PyTorch](https://pytorch.org/) and [JAX](https://docs.jax.dev/en/latest/):
 - [QM9](https://www.nature.com/articles/sdata201422): ~134000 small organic molecules with quantum chemical properties.
 - [GEOM (Drugs)](https://www.nature.com/articles/s41597-022-01288-4): a subset of the GEOM dataset containing ~300000 drug-like molecules with multiple conformers and properties.
 - [tmQM](https://pubs.acs.org/doi/10.1021/acs.jcim.0c01041): ~86000 transition metal complexes with quantum chemical properties.
@@ -92,7 +92,7 @@ Available properties vary by dataset.
 We provide wrappers for both [PyTorch](https://pytorch.org/) via [PyTorch Geometric](https://pytorch-geometric.readthedocs.io/en/latest/):
 ```python
 from atomic_datasets import Tetris
-from atomic_datasets.wrappers import PyTorchGeometricDataset
+from atomic_datasets.wrappers.torch import PyTorchGeometricDataset
 from torch_geometric.loader import DataLoader
 
 dataset = PyTorchGeometricDataset(Tetris())
@@ -107,7 +107,7 @@ for batch in loader:
 and [JAX](https://docs.jax.dev/en/latest/) via [Jraph](https://github.com/google-deepmind/jraph):
 ```python
 from atomic_datasets import Tetris
-from atomic_datasets.wrappers import JraphDataset
+from atomic_datasets.wrappers.jax import JraphDataset
 import jraph
 
 dataset = JraphDataset(Tetris())
