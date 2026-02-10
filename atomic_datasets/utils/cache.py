@@ -53,7 +53,9 @@ def cache_to_file(dataset: str, cache_dir: Optional[str] = None):
 
             # Check if cache exists and load if available
             if os.path.exists(cache_file):
-                print(f"Loading cached {dataset} data from {os.path.abspath(cache_file)}")
+                print(
+                    f"Loading cached {dataset} data from {os.path.abspath(cache_file)}"
+                )
                 with open(cache_file, "rb") as f:
                     cached_graphs = pickle.load(f)
                 for graph in cached_graphs:
@@ -61,9 +63,7 @@ def cache_to_file(dataset: str, cache_dir: Optional[str] = None):
                 return
 
             # Remove any old cache files with different hashes
-            old_cache_pattern = (
-                f"{dataset}_cache_{check_with_rdkit}_{check_validity}_{start_index}_{end_index}_*.pkl"
-            )
+            old_cache_pattern = f"{dataset}_cache_{check_with_rdkit}_{check_validity}_{start_index}_{end_index}_*.pkl"
             for old_cache in glob.glob(os.path.join(cache_path, old_cache_pattern)):
                 if os.path.basename(old_cache) != os.path.basename(cache_file):
                     print(f"Removing outdated cache file: {old_cache}")

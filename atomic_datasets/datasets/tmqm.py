@@ -17,14 +17,14 @@ TMQM_URL = r"https://github.com/bbskjelstad/tmqm.git"
 class tmQM(datatypes.MolecularDataset):
     """
     The tmQM dataset (2024 release) from https://pubs.acs.org/doi/10.1021/acs.jcim.0c01041.
-    
+
     Contains ~108k transition metal complexes with elements from H (1) to Hg (80).
-    
+
     Loaded data includes:
     - Geometries from tmQM_X{1,2,3}.xyz.gz (GFN2-xTB optimized)
     - Per-molecule properties from tmQM_y.csv (DFT level) and XYZ comment lines
     - Per-atom natural charges from tmQM_X.q (DFT NBO analysis)
-    
+
     Args:
         root_dir: Directory to store/load data
         split: Which split to use ('train', 'val', 'test')
@@ -51,7 +51,7 @@ class tmQM(datatypes.MolecularDataset):
         rng_seed: int = 0,
         train_on_single_molecule: bool = False,
         train_on_single_molecule_index: int = 0,
-        mmap_mode: Optional[str] = 'r',
+        mmap_mode: Optional[str] = "r",
     ):
         super().__init__(atomic_numbers=self.ATOMIC_NUMBERS)
 
@@ -78,13 +78,13 @@ class tmQM(datatypes.MolecularDataset):
         else:
             self.splits = splits
 
-        self._positions = None       # (N_total_atoms, 3) float32
+        self._positions = None  # (N_total_atoms, 3) float32
         self._atomic_numbers = None  # (N_total_atoms,) int32
-        self._charges = None         # (N_total_atoms,) float32 — NBO natural charges
-        self._offsets = None         # (N_mols + 1,) int32
-        self._n_atoms = None         # (N_mols,) int32
-        self._indices = None         # active indices after split/slicing
-        self._properties_df = None   # per-molecule properties (CSV + comment line)
+        self._charges = None  # (N_total_atoms,) float32 — NBO natural charges
+        self._offsets = None  # (N_mols + 1,) int32
+        self._n_atoms = None  # (N_mols,) int32
+        self._indices = None  # active indices after split/slicing
+        self._properties_df = None  # per-molecule properties (CSV + comment line)
 
         self.preprocess()
 
@@ -92,22 +92,22 @@ class tmQM(datatypes.MolecularDataset):
         """Load and preprocess tmQM data."""
         cache_file = os.path.join(self.root_dir, "tmqm_preprocessed.npz")
         prop_cache = cache_file.replace(".npz", ".pkl")
-        
+
         if os.path.exists(cache_file):
             self._load_from_cache(cache_file, prop_cache)
         else:
             self._load_from_raw()
             self._save_to_cache(cache_file, prop_cache)
-        
+
         # Apply splits
         n_molecules = len(self._offsets) - 1
         split_indices = self._get_split_indices(n_molecules)
-        
+
         if self.split is not None:
             self._indices = split_indices[self.split].copy()
         else:
             self._indices = np.arange(n_molecules)
-        
+
         # Apply start/end slicing
         self._indices = self._indices[slice(self.start_index, self.end_index)]
 
@@ -142,14 +142,14 @@ class tmQM(datatypes.MolecularDataset):
         """Load preprocessed data from cache using memory-mapping."""
         print(f"Loading tmQM from cache: {os.path.abspath(cache_file)}")
         data = np.load(cache_file, mmap_mode=self.mmap_mode)
-        
-        self._positions = data['positions']
-        self._atomic_numbers = data['atomic_numbers']
-        self._offsets = data['offsets']
-        self._n_atoms = data['n_atoms']
-        
-        if 'charges' in data:
-            self._charges = data['charges']
+
+        self._positions = data["positions"]
+        self._atomic_numbers = data["atomic_numbers"]
+        self._offsets = data["offsets"]
+        self._n_atoms = data["n_atoms"]
+
+        if "charges" in data:
+            self._charges = data["charges"]
 
         if os.path.exists(prop_cache):
             self._properties_df = pd.read_pickle(prop_cache)
@@ -167,9 +167,9 @@ class tmQM(datatypes.MolecularDataset):
             n_atoms=self._n_atoms,
         )
         if self._charges is not None:
-            save_dict['charges'] = self._charges
+            save_dict["charges"] = self._charges
         np.savez(cache_file, **save_dict)
-        
+
         if self._properties_df is not None:
             self._properties_df.to_pickle(prop_cache)
             print(f"Saved properties cache to: {prop_cache}")
@@ -185,20 +185,20 @@ class tmQM(datatypes.MolecularDataset):
                 candidate_paths.append(
                     os.path.join(self.root_dir, subdir, "tmQM", "tmQM_y.csv")
                 )
-        
+
         props_path = None
         for p in candidate_paths:
             if os.path.exists(p):
                 props_path = p
                 break
-        
+
         if props_path is None:
             logging.warning(
                 "tmQM_y.csv not found. CSV properties will not be available. "
                 f"Searched: {candidate_paths}"
             )
             return None
-        
+
         print(f"Loading properties from: {props_path}")
         df = pd.read_csv(props_path, sep=";")
         df.columns = df.columns.str.strip()
@@ -211,13 +211,13 @@ class tmQM(datatypes.MolecularDataset):
     def _load_charges_file(self) -> Optional[Dict[str, np.ndarray]]:
         """
         Load tmQM_X.q — per-atom NBO natural charges.
-        
+
         File format (blocks separated by blank lines):
             CSD_code = WELROW | 2020-2024 CSD
             La   0.43487
             Se  -0.38460
             ...
-        
+
         Returns a dict mapping CSD_code -> np.ndarray of charges (float32).
         """
         candidate_paths = [
@@ -229,37 +229,37 @@ class tmQM(datatypes.MolecularDataset):
                 candidate_paths.append(
                     os.path.join(self.root_dir, subdir, "tmQM", "tmQM_X.q")
                 )
-        
+
         q_path = None
         for p in candidate_paths:
             if os.path.exists(p):
                 q_path = p
                 break
-        
+
         if q_path is None:
             logging.warning(
                 "tmQM_X.q not found. Per-atom charges will not be available. "
                 f"Searched: {candidate_paths}"
             )
             return None
-        
+
         print(f"Loading per-atom charges from: {q_path}")
         charges_dict = {}
-        
+
         with open(q_path, "r") as f:
             content = f.read()
-        
+
         blocks = content.split("\n\n")
         for block in tqdm.tqdm(blocks, desc="Parsing tmQM_X.q"):
             block = block.strip()
             if not block:
                 continue
-            
+
             lines = block.split("\n")
             # First line is the header: "CSD_code = WELROW | 2020-2024 CSD"
             header = lines[0]
             csd_code = self._parse_csd_code_from_header(header)
-            
+
             # Remaining lines: "Element  charge"
             mol_charges = []
             for line in lines[1:]:
@@ -272,10 +272,10 @@ class tmQM(datatypes.MolecularDataset):
                         mol_charges.append(float(parts[1]))
                     except ValueError:
                         continue
-            
+
             if csd_code and mol_charges:
                 charges_dict[csd_code] = np.array(mol_charges, dtype=np.float32)
-        
+
         print(f"Loaded charges for {len(charges_dict)} molecules from tmQM_X.q")
         return charges_dict
 
@@ -283,10 +283,10 @@ class tmQM(datatypes.MolecularDataset):
     def _parse_comment_line(comment_line: str) -> Dict[str, str]:
         """
         Parse the XYZ comment line into a dict of metadata.
-        
+
         Format:
             CSD_code = WELROW | q = 0 | S = 0 | Stoichiometry = C40H36LaN2P3Se6 | MND = 8 | 2020-2024 CSD
-        
+
         Returns dict with keys: CSD_code, q, S, Stoichiometry, MND, CSD_years
         """
         result = {}
@@ -324,16 +324,16 @@ class tmQM(datatypes.MolecularDataset):
     def _load_from_raw(self):
         """Load from raw XYZ files and convert to contiguous arrays."""
         xyzs_path = self._download_if_needed()
-        
+
         # Load auxiliary data sources
         props_df = self._load_properties_csv()
         charges_dict = self._load_charges_file()
-        
+
         all_positions, all_z, all_charges, n_atoms_list = [], [], [], []
         comment_metadata = []
         csd_codes = []
         xyz_files = sorted(os.listdir(xyzs_path))
-        
+
         for mol_file in tqdm.tqdm(xyz_files, desc="Preprocessing tmQM"):
             mol_path = os.path.join(xyzs_path, mol_file)
             try:
@@ -346,18 +346,18 @@ class tmQM(datatypes.MolecularDataset):
             all_positions.append(np.asarray(mol.positions, dtype=np.float32))
             all_z.append(np.asarray(mol.numbers, dtype=np.int32))
             n_atoms_list.append(n_at)
-            
+
             # Parse comment line for CSD code + metadata
             comment = self._extract_comment_line(mol_path)
             if comment:
                 meta = self._parse_comment_line(comment)
             else:
                 meta = {}
-            
+
             csd_code = meta.get("CSD_code")
             csd_codes.append(csd_code)
             comment_metadata.append(meta)
-            
+
             # Per-atom charges from tmQM_X.q
             if charges_dict is not None and csd_code in charges_dict:
                 mol_charges = charges_dict[csd_code]
@@ -371,15 +371,15 @@ class tmQM(datatypes.MolecularDataset):
                     all_charges.append(np.full(n_at, np.nan, dtype=np.float32))
             else:
                 all_charges.append(np.full(n_at, np.nan, dtype=np.float32))
-        
+
         # Build contiguous arrays
         self._positions = np.concatenate(all_positions, axis=0)
         self._atomic_numbers = np.concatenate(all_z, axis=0)
         self._n_atoms = np.array(n_atoms_list, dtype=np.int32)
-        
+
         self._offsets = np.zeros(len(n_atoms_list) + 1, dtype=np.int32)
         np.cumsum(n_atoms_list, out=self._offsets[1:])
-        
+
         # Per-atom charges
         if charges_dict is not None:
             self._charges = np.concatenate(all_charges, axis=0)
@@ -403,32 +403,33 @@ class tmQM(datatypes.MolecularDataset):
         """
         # Start with comment-line metadata (already contains CSD_code from parsing)
         meta_df = pd.DataFrame(comment_metadata)
-        
+
         # Merge with CSV properties if available
         if csv_props_df is not None:
             # Drop comment-line columns that overlap with CSV columns (keep CSV version)
             overlap = set(meta_df.columns) & set(csv_props_df.columns)
             if overlap:
                 meta_df = meta_df.drop(columns=list(overlap))
-            
+
             merged = meta_df.merge(
-                csv_props_df, left_on="CSD_code", right_index=True,
+                csv_props_df,
+                left_on="CSD_code",
+                right_index=True,
                 how="left",
             )
-            
+
             n_matched = merged[csv_props_df.columns[0]].notna().sum()
             n_total = len(csd_codes)
             print(f"CSV properties matched: {n_matched}/{n_total} molecules")
-            
+
             if n_matched < n_total:
                 logging.warning(
                     f"{n_total - n_matched} molecules have no matching CSV properties. "
                     "Their CSV property values will be NaN."
                 )
             return merged
-        
-        return meta_df
 
+        return meta_df
 
     def _get_split_indices(self, n_molecules: int) -> Dict[str, np.ndarray]:
         if self.train_on_single_molecule:
@@ -438,7 +439,7 @@ class tmQM(datatypes.MolecularDataset):
         rng = np.random.default_rng(self.rng_seed)
         shuffled_indices = np.arange(n_molecules)
         rng.shuffle(shuffled_indices)
-        
+
         return {k: shuffled_indices[v[v < n_molecules]] for k, v in self.splits.items()}
 
     def __len__(self) -> int:
@@ -449,7 +450,7 @@ class tmQM(datatypes.MolecularDataset):
         real_idx = self._indices[idx]
         start, end = self._offsets[real_idx], self._offsets[real_idx + 1]
         atomic_numbers = np.array(self._atomic_numbers[start:end])
-        
+
         # Build nodes dict
         nodes = dict(
             positions=np.array(self._positions[start:end]),
@@ -457,19 +458,23 @@ class tmQM(datatypes.MolecularDataset):
             species=self.atomic_numbers_to_species(atomic_numbers),
             atom_types=utils.atomic_numbers_to_symbols(atomic_numbers),
         )
-        
+
         # Per-atom NBO natural charges
         if self._charges is not None:
             nodes["charges"] = np.array(self._charges[start:end])
-        
+
         # Per-molecule properties
         properties = None
         if self._properties_df is not None:
             properties = self._properties_df.iloc[real_idx].to_dict()
-        
+
         return datatypes.Graph(
             nodes=nodes,
             n_node=np.asarray([self._n_atoms[real_idx]]),
-            edges=None, receivers=None, senders=None, globals=None, n_edge=None,
+            edges=None,
+            receivers=None,
+            senders=None,
+            globals=None,
+            n_edge=None,
             properties=properties,
         )

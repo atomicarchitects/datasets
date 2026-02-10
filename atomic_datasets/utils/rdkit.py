@@ -6,7 +6,9 @@ import numpy as np
 from rdkit import Chem
 
 _PTABLE = Chem.GetPeriodicTable()
-_Z_TO_SYMBOL = np.array([_PTABLE.GetElementSymbol(i) if i > 0 else "" for i in range(119)])
+_Z_TO_SYMBOL = np.array(
+    [_PTABLE.GetElementSymbol(i) if i > 0 else "" for i in range(119)]
+)
 _SYMBOL_TO_Z = {symbol: i for i, symbol in enumerate(_Z_TO_SYMBOL) if symbol != ""}
 
 
@@ -14,13 +16,16 @@ def atomic_number_to_symbol(atomic_number: int) -> str:
     """Convert atomic number to atomic symbol."""
     return _Z_TO_SYMBOL[atomic_number]
 
+
 def atomic_numbers_to_symbols(atomic_numbers: np.ndarray) -> np.ndarray:
     """Fast vectorized conversion of atomic numbers to symbols."""
     return _Z_TO_SYMBOL[atomic_numbers.astype(int)]
 
+
 def atomic_symbol_to_number(atomic_symbol: str) -> int:
     """Convert atomic symbol to atomic number."""
     return _SYMBOL_TO_Z[atomic_symbol]
+
 
 def atomic_symbols_to_numbers(atomic_symbols: np.ndarray) -> np.ndarray:
     """Fast conversion of symbols to atomic numbers."""

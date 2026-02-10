@@ -379,11 +379,12 @@ class SplitterMixin:
         indices = np.arange(start_ndx, end_ndx)
         self.rng.shuffle(indices)
         splits = np.split(
-            indices, [
+            indices,
+            [
                 self.num_train_molecules,
                 self.num_train_molecules + self.num_val_molecules,
                 min(len(self.all_graphs), total_mols),
-            ]
+            ],
         )[:-1]
         splits = {k: indices[v] for k, v in zip(["train", "val", "test"], splits)}
         return splits

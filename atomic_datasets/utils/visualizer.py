@@ -8,8 +8,7 @@ try:
     import py3Dmol
 except ImportError:
     raise ImportError(
-        "py3Dmol is required for visualization. "
-        "Install with: pip install py3Dmol"
+        "py3Dmol is required for visualization. Install with: pip install py3Dmol"
     )
 
 
@@ -86,7 +85,9 @@ def visualize_raw(
     elif style == "sphere+stick":
         style_spec = {"sphere": {"scale": 0.25}, "stick": {"radius": 0.1}}
     else:
-        raise ValueError(f"Unsupported style '{style}'. Use 'sphere', 'stick', or 'sphere+stick'.")
+        raise ValueError(
+            f"Unsupported style '{style}'. Use 'sphere', 'stick', or 'sphere+stick'."
+        )
 
     viewer.setStyle(style_spec)
 

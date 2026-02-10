@@ -29,10 +29,41 @@ class CrossDocked(datatypes.MolecularDataset):
         mmap_mode: Memory-map mode for numpy arrays ('r', 'r+', 'c', or None to load into memory)
     """
 
-    ATOMIC_NUMBERS = np.asarray([
-        13, 33, 79,  5, 35,  6, 17, 27, 24, 29,  9, 26,  1, 80, 53,  3, 12,
-        42,  7,  8, 15, 44, 16, 21, 34, 14, 50, 23, 74, 39
-    ], dtype=np.int32)
+    ATOMIC_NUMBERS = np.asarray(
+        [
+            13,
+            33,
+            79,
+            5,
+            35,
+            6,
+            17,
+            27,
+            24,
+            29,
+            9,
+            26,
+            1,
+            80,
+            53,
+            3,
+            12,
+            42,
+            7,
+            8,
+            15,
+            44,
+            16,
+            21,
+            34,
+            14,
+            50,
+            23,
+            74,
+            39,
+        ],
+        dtype=np.int32,
+    )
 
     def __init__(
         self,
@@ -40,7 +71,7 @@ class CrossDocked(datatypes.MolecularDataset):
         split: str = "train",
         start_index: Optional[int] = None,
         end_index: Optional[int] = None,
-        mmap_mode: Optional[str] = 'r',
+        mmap_mode: Optional[str] = "r",
     ):
         super().__init__(atomic_numbers=self.ATOMIC_NUMBERS)
 
@@ -53,13 +84,13 @@ class CrossDocked(datatypes.MolecularDataset):
         self.preprocessed = False
 
         # Data storage
-        self._positions = None       # (N_total, 3) memory-mapped
-        self._atom_types = None      # (N_total,) memory-mapped (indices into lookup)
-        self._offsets = None         # (n_complexes + 1,) start indices
-        self._n_atoms = None         # (n_complexes,) atoms per complex
+        self._positions = None  # (N_total, 3) memory-mapped
+        self._atom_types = None  # (N_total,) memory-mapped (indices into lookup)
+        self._offsets = None  # (n_complexes + 1,) start indices
+        self._n_atoms = None  # (n_complexes,) atoms per complex
         self._atom_type_lookup = None  # (n_types,) symbol strings
-        self._properties = None      # List of dicts (pocket_file, starting_fragment_mask)
-        self._indices = None         # Indices after slicing
+        self._properties = None  # List of dicts (pocket_file, starting_fragment_mask)
+        self._indices = None  # Indices after slicing
 
         if split not in ("train", "val", "test"):
             raise ValueError(f"split must be 'train', 'val', or 'test', got '{split}'")
@@ -94,10 +125,12 @@ class CrossDocked(datatypes.MolecularDataset):
         zip_path = os.path.join(self.root_dir, zip_filename)
 
         if not os.path.exists(zip_path):
-            utils.download_url(CROSSDOCKED_ZENODO_URL, self.root_dir, filename=zip_filename)
+            utils.download_url(
+                CROSSDOCKED_ZENODO_URL, self.root_dir, filename=zip_filename
+            )
 
         print(f"Extracting {zip_filename}...")
-        with zipfile.ZipFile(zip_path, 'r') as zf:
+        with zipfile.ZipFile(zip_path, "r") as zf:
             zf.extractall(self.root_dir)
 
         os.remove(zip_path)
@@ -117,13 +150,19 @@ class CrossDocked(datatypes.MolecularDataset):
             mmap_mode=self.mmap_mode,
         )
 
-        self._offsets = np.load(os.path.join(self.root_dir, "crossdocked", f"{prefix}_offsets.npy"))
-        self._n_atoms = np.load(os.path.join(self.root_dir, "crossdocked", f"{prefix}_n_atoms.npy"))
+        self._offsets = np.load(
+            os.path.join(self.root_dir, "crossdocked", f"{prefix}_offsets.npy")
+        )
+        self._n_atoms = np.load(
+            os.path.join(self.root_dir, "crossdocked", f"{prefix}_n_atoms.npy")
+        )
         self._atom_type_lookup = np.load(
             os.path.join(self.root_dir, "crossdocked", f"{prefix}_atom_type_lookup.npy")
         )
 
-        with open(os.path.join(self.root_dir, "crossdocked", f"{prefix}_properties.json")) as f:
+        with open(
+            os.path.join(self.root_dir, "crossdocked", f"{prefix}_properties.json")
+        ) as f:
             self._properties = json.load(f)
 
         n_complexes = len(self._n_atoms)

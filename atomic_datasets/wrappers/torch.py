@@ -29,7 +29,6 @@ except ImportError:
     )
 
 
-
 def graph_to_data(graph: dict) -> Data:
     """Convert a single atomic_datasets Graph dict to a PyG Data object.
 
