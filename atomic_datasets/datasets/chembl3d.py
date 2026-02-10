@@ -1,7 +1,7 @@
 import os
 import json
 import zipfile
-from typing import Dict, Iterable, Optional
+from typing import Dict, Iterable, Optional, Sequence, Any
 
 import numpy as np
 
@@ -10,51 +10,30 @@ from atomic_datasets import utils
 
 
 # Zenodo URL for preprocessed data
-ChEMBL3D_ZENODO_URL = "https://zenodo.org/records/18488050/files/chembl3d_processed.zip"  # TODO: Update after upload
+ChEMBL3D_ZENODO_URL = "https://zenodo.org/records/18488050/files/chembl3d_processed.zip"
 
 
 class ChEMBL3D(datatypes.MolecularDataset):
     """
     Dataset of ChEMBL3D structures from https://github.com/isayevlab/LoQI.
     
+    Contains structures for a large subset of ChEMBL, pre-optimized or extracted
+    from 3D experimental data. This implementation uses a high-performance 
+    contiguous memory layout with memory-mapping support.
+
     Args:
         root_dir: Directory to store/load data
         split: Which split to use ('train', 'val', 'test_small', 'test_rot_bonds', 'test_cremp')
-        start_index: Start index for slicing
-        end_index: End index for slicing
+        start_index: Start index for slicing the dataset
+        end_index: End index for slicing the dataset
         train_on_single_molecule: If True, use single molecule for all splits
         train_on_single_molecule_index: Index of molecule to use if train_on_single_molecule=True
-    
-    Example:
-        >>> dataset = ChEMBL3D(root_dir="data/ChEMBL3D_stereo", split="train")
-        >>> print(len(dataset))
-        >>> graph = dataset[0]  # Fast random access
+        mmap_mode: Memory-map mode for numpy arrays ('r', 'r+', 'c', or None to load into memory)
     """
 
-    # Atomic numbers present in ChEMBL3D
     ATOMIC_NUMBERS = np.asarray([
-        1,   # H
-        5,   # B
-        6,   # C
-        7,   # N
-        8,   # O
-        9,   # F
-        13,  # Al
-        14,  # Si
-        15,  # P
-        16,  # S
-        17,  # Cl
-        33,  # As
-        35,  # Br
-        53,  # I
-        80,  # Hg
-        83,  # Bi
-        34,  # Se
+        1, 5, 6, 7, 8, 9, 13, 14, 15, 16, 17, 33, 35, 53, 80, 83, 34
     ], dtype=np.int32)
-    
-    ATOM_SYMBOLS = np.array([
-        'H', 'B', 'C', 'N', 'O', 'F', 'Al', 'Si', 'P', 'S', 'Cl', 'As', 'Br', 'I', 'Hg', 'Bi', 'Se'
-    ])
 
     def __init__(
         self,
@@ -64,8 +43,9 @@ class ChEMBL3D(datatypes.MolecularDataset):
         end_index: Optional[int] = None,
         train_on_single_molecule: bool = False,
         train_on_single_molecule_index: int = 0,
+        mmap_mode: Optional[str] = 'r',
     ):
-        super().__init__()
+        super().__init__(atomic_numbers=self.ATOMIC_NUMBERS)
 
         self.root_dir = os.path.join(root_dir, "chembl3d")
         self.split = split
@@ -73,10 +53,11 @@ class ChEMBL3D(datatypes.MolecularDataset):
         self.end_index = end_index
         self.train_on_single_molecule = train_on_single_molecule
         self.train_on_single_molecule_index = train_on_single_molecule_index
+        self.mmap_mode = mmap_mode
 
         self.preprocessed = False
         
-        # Data storage - memory mapped for efficiency
+        # Data storage - will be initialized as contiguous arrays or memory-mapped views
         self._positions = None      # (total_atoms, 3) float32
         self._species = None        # (total_atoms,) uint8
         self._offsets = None        # (n_molecules + 1,) int64
@@ -86,28 +67,12 @@ class ChEMBL3D(datatypes.MolecularDataset):
         self._hybridization = None  # (total_atoms,) uint8
         self._smiles = None         # list of str
         self._chemblids = None      # list of str
-        self._indices = None        # indices after filtering
+        self._indices = None        # indices after filtering/slicing
 
-    @classmethod
-    def atom_types(cls) -> np.ndarray:
-        return cls.ATOM_SYMBOLS.copy()
-
-    @classmethod
-    def get_atomic_numbers(cls) -> np.ndarray:
-        return cls.ATOMIC_NUMBERS.copy()
-    
-    @classmethod
-    def species_to_atomic_numbers(cls) -> Dict[int, int]:
-        return {i: int(an) for i, an in enumerate(cls.ATOMIC_NUMBERS)}
-    
-    @classmethod
-    def atomic_numbers_to_species(cls, atomic_numbers: np.ndarray) -> np.ndarray:
-        """Map atomic numbers to species indices."""
-        lookup = {int(an): i for i, an in enumerate(cls.ATOMIC_NUMBERS)}
-        return np.array([lookup[int(an)] for an in atomic_numbers], dtype=np.int32)
+        self.preprocess()
 
     def _get_file_path(self, filename: str) -> str:
-        """Get path to a preprocessed file."""
+        """Helper to get the absolute path to a preprocessed file."""
         return os.path.join(self.root_dir, filename)
 
     def _download_from_zenodo(self):
@@ -142,15 +107,14 @@ class ChEMBL3D(datatypes.MolecularDataset):
                     target.write(source.read())
                 source.close()
         
-        # Clean up zip file
+        # Clean up zip file to save disk space
         os.remove(zip_path)
         print("Download complete.")
 
     def preprocess(self):
-        """Load preprocessed numpy files."""
+        """Load preprocessed numpy files and setup indices."""
         if self.preprocessed:
             return
-        self.preprocessed = True
 
         prefix = self.split
         
@@ -159,18 +123,18 @@ class ChEMBL3D(datatypes.MolecularDataset):
         if not os.path.exists(positions_path):
             self._download_from_zenodo()
         
-        print(f"Loading ChEMBL3D {self.split} from: {self.root_dir}")
+        print(f"Loading ChEMBL3D {self.split} split from: {self.root_dir}")
         
-        # Load arrays (memory-mapped for large files)
-        self._positions = np.load(self._get_file_path(f"{prefix}_positions.npy"), mmap_mode='r')
-        self._species = np.load(self._get_file_path(f"{prefix}_species.npy"), mmap_mode='r')
-        self._offsets = np.load(self._get_file_path(f"{prefix}_offsets.npy"))  # Small, load fully
-        self._charges = np.load(self._get_file_path(f"{prefix}_charges.npy"), mmap_mode='r')
-        self._is_aromatic = np.load(self._get_file_path(f"{prefix}_is_aromatic.npy"), mmap_mode='r')
-        self._is_in_ring = np.load(self._get_file_path(f"{prefix}_is_in_ring.npy"), mmap_mode='r')
-        self._hybridization = np.load(self._get_file_path(f"{prefix}_hybridization.npy"), mmap_mode='r')
+        # Load arrays (memory-mapped for large files to save RAM)
+        self._positions = np.load(self._get_file_path(f"{prefix}_positions.npy"), mmap_mode=self.mmap_mode)
+        self._species = np.load(self._get_file_path(f"{prefix}_species.npy"), mmap_mode=self.mmap_mode)
+        self._offsets = np.load(self._get_file_path(f"{prefix}_offsets.npy"))  # Small, load fully into RAM
+        self._charges = np.load(self._get_file_path(f"{prefix}_charges.npy"), mmap_mode=self.mmap_mode)
+        self._is_aromatic = np.load(self._get_file_path(f"{prefix}_is_aromatic.npy"), mmap_mode=self.mmap_mode)
+        self._is_in_ring = np.load(self._get_file_path(f"{prefix}_is_in_ring.npy"), mmap_mode=self.mmap_mode)
+        self._hybridization = np.load(self._get_file_path(f"{prefix}_hybridization.npy"), mmap_mode=self.mmap_mode)
         
-        # Load metadata
+        # Load metadata (SMILES and IDs)
         metadata_path = self._get_file_path(f"{prefix}_metadata.json")
         with open(metadata_path, 'r') as f:
             metadata = json.load(f)
@@ -179,27 +143,30 @@ class ChEMBL3D(datatypes.MolecularDataset):
         
         n_molecules = len(self._offsets) - 1
         n_atoms = len(self._positions)
-        print(f"Loaded {n_molecules:,} molecules, {n_atoms:,} atoms")
+        print(f"Loaded {n_molecules:,} molecules, {n_atoms:,} total atoms")
         
-        # Apply single molecule override
+        # Apply single molecule override for debugging or overfitting tests
         if self.train_on_single_molecule:
             self._indices = np.array([self.train_on_single_molecule_index])
         else:
             self._indices = np.arange(n_molecules)
         
-        # Apply start/end index
-        if self.start_index is not None:
-            self._indices = self._indices[self.start_index:]
-        if self.end_index is not None:
-            self._indices = self._indices[:self.end_index]
+        # Apply start/end index for subsetting
+        self._indices = self._indices[slice(self.start_index, self.end_index)]
+        
+        self.preprocessed = True
 
-    @utils.after_preprocess
     def __len__(self) -> int:
+        """Returns the number of molecules in the current split/slice."""
         return len(self._indices)
 
-    @utils.after_preprocess
     def __getitem__(self, idx: int) -> datatypes.Graph:
-        """Fast random access to a molecule."""
+        """
+        Fast random access to a molecule using offset-based slicing.
+        
+        Returns:
+            A datatypes.Graph object containing positions, species, and atomic properties.
+        """
         if idx < 0:
             idx = len(self._indices) + idx
         if idx < 0 or idx >= len(self._indices):
@@ -209,13 +176,15 @@ class ChEMBL3D(datatypes.MolecularDataset):
         start = self._offsets[mol_idx]
         end = self._offsets[mol_idx + 1]
         
-        # Slice arrays (copies from mmap)
+        # Slice arrays (copies from mmap into RAM for the return object)
         species = np.array(self._species[start:end])
-        atom_types = self.ATOM_SYMBOLS[species]
+        atomic_numbers = self.species_to_atomic_numbers(species)
+        atom_types = utils.atomic_numbers_to_symbols(atomic_numbers)
         
         return datatypes.Graph(
             nodes=dict(
                 positions=np.array(self._positions[start:end]),
+                atomic_numbers=atomic_numbers,
                 species=species,
                 atom_types=atom_types,
             ),
@@ -234,9 +203,3 @@ class ChEMBL3D(datatypes.MolecularDataset):
                 "hybridization": np.array(self._hybridization[start:end]),
             },
         )
-
-    @utils.after_preprocess
-    def __iter__(self) -> Iterable[datatypes.Graph]:
-        """Iterate over all molecules."""
-        for i in range(len(self)):
-            yield self[i]

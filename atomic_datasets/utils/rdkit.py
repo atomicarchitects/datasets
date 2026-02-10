@@ -2,27 +2,29 @@ import numpy as np
 from rdkit import Chem
 from rdkit.Chem import rdDetermineBonds
 
+import numpy as np
+from rdkit import Chem
+
+_PTABLE = Chem.GetPeriodicTable()
+_Z_TO_SYMBOL = np.array([_PTABLE.GetElementSymbol(i) if i > 0 else "" for i in range(119)])
+_SYMBOL_TO_Z = {symbol: i for i, symbol in enumerate(_Z_TO_SYMBOL) if symbol != ""}
+
 
 def atomic_number_to_symbol(atomic_number: int) -> str:
     """Convert atomic number to atomic symbol."""
-    ptable = Chem.GetPeriodicTable()
-    return ptable.GetElementSymbol(atomic_number)
-
+    return _Z_TO_SYMBOL[atomic_number]
 
 def atomic_numbers_to_symbols(atomic_numbers: np.ndarray) -> np.ndarray:
-    """Convert atomic numbers to atomic symbols."""
-    return np.array([atomic_number_to_symbol(int(num)) for num in atomic_numbers])
-
+    """Fast vectorized conversion of atomic numbers to symbols."""
+    return _Z_TO_SYMBOL[atomic_numbers.astype(int)]
 
 def atomic_symbol_to_number(atomic_symbol: str) -> int:
     """Convert atomic symbol to atomic number."""
-    ptable = Chem.GetPeriodicTable()
-    return ptable.GetAtomicNumber(atomic_symbol)
-
+    return _SYMBOL_TO_Z[atomic_symbol]
 
 def atomic_symbols_to_numbers(atomic_symbols: np.ndarray) -> np.ndarray:
-    """Convert atomic symbols to atomic numbers."""
-    return np.array([atomic_symbol_to_number(sym) for sym in atomic_symbols])
+    """Fast conversion of symbols to atomic numbers."""
+    return np.array([_SYMBOL_TO_Z[str(sym)] for sym in atomic_symbols], dtype=np.int32)
 
 
 def is_molecule_sane(mol: Chem.Mol) -> bool:
@@ -44,6 +46,7 @@ def is_molecule_sane(mol: Chem.Mol) -> bool:
     }
     return all(results.values())
 
+
 def add_bonds(mol: Chem.Mol) -> Chem.Mol:
     """Adds bonds to a molecule."""
     mol = Chem.RWMol(mol)
@@ -52,7 +55,8 @@ def add_bonds(mol: Chem.Mol) -> Chem.Mol:
     )
     return mol
 
-def check_molecule_validity(mol: Chem.Mol) -> bool:
+
+def check_with_xyz2mol(mol: Chem.Mol) -> bool:
     """Checks whether a molecule is valid using xyz2mol.
 
     This function checks whether xyz2mol can determine all bonds in a molecule, with a net charge of 0.

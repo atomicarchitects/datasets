@@ -2,7 +2,7 @@
 
 Usage:
     from atomic_datasets import Tetris
-    from atomic_datasets.wrappers import PyTorchGeometricDataset
+    from atomic_datasets.wrappers.torch import PyTorchGeometricDataset
 
     dataset = PyTorchGeometricDataset(Tetris())
     data = dataset[0]  # torch_geometric.data.Data
@@ -17,6 +17,7 @@ Usage:
 """
 
 import numpy as np
+from atomic_datasets.datatypes import MolecularDataset
 
 try:
     import torch
@@ -27,7 +28,6 @@ except ImportError:
         "Install with: pip install atomic-datasets[torch]"
     )
 
-from atomic_datasets.datatypes import MolecularDataset
 
 
 def graph_to_data(graph: dict) -> Data:
@@ -97,8 +97,8 @@ class PyTorchGeometricDataset(Dataset):
     def __init__(self, dataset: MolecularDataset):
         self._dataset = dataset
 
-    def len(self) -> int:
+    def __len__(self) -> int:
         return len(self._dataset)
 
-    def get(self, idx: int) -> Data:
+    def __getitem__(self, idx: int) -> Data:
         return graph_to_data(self._dataset[idx])

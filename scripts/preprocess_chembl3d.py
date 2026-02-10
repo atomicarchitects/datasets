@@ -253,7 +253,7 @@ def preprocess_chembl3d(
     
     # Generate README
     readme = generate_readme(stats, all_file_hashes)
-    readme_path = os.path.join(output_dir, "README.md")
+    readme_path = os.path.join(os.path.dirname(os.path.normpath(output_dir)), "README.md")
     with open(readme_path, 'w') as f:
         f.write(readme)
     
@@ -347,22 +347,6 @@ Shared files:
 | `atomic_numbers.npy` | Species index to atomic number mapping |
 | `manifest.json` | Dataset metadata and file hashes |
 
-## Usage
-
-To get molecule `i`, slice using offsets:
-```python
-start, end = offsets[i], offsets[i + 1]
-mol_positions = positions[start:end]
-mol_species = species[start:end]
-```
-
-Or use the dataset class:
-```python
-from atomic_datasets import ChEMBL3D
-
-dataset = ChEMBL3D(root_dir="path/to/processed", split="train")
-mol = dataset[0]
-```
 
 ## File Hashes (SHA256)
 

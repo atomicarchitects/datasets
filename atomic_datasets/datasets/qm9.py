@@ -1,4 +1,4 @@
-from typing import Iterable, Dict, Optional, Tuple, Union
+from typing import Iterable, Dict, Optional, Tuple, Union, Sequence
 import os
 import logging
 
@@ -24,15 +24,10 @@ class QM9(datatypes.MolecularDataset):
         root_dir: Directory to store/load data
         split: Which split to use ('train', 'val', 'test') if use_Anderson_splits=True
         use_Anderson_splits: Use the Anderson et al. (https://arxiv.org/abs/1906.04015) Cormorant paper splits (100k train, ~13k val, ~13k test)
-        check_with_rdkit: Validate molecules with RDKit sanity checks
-        check_validity: Check molecule validity (slower)
+        check_validity: Check molecule validity with RDKit (slower)
         start_index: Start index for slicing
         end_index: End index for slicing
     
-    Example:
-        >>> dataset = QM9(root_dir="data/qm9", use_Anderson_splits=True, split="train")
-        >>> print(len(dataset))
-        >>> graph = dataset[0]  # Fast random access
     """
 
     # Atomic numbers present in QM9: H, C, N, O, F
@@ -43,48 +38,40 @@ class QM9(datatypes.MolecularDataset):
         root_dir: str,
         split: Optional[str] = None,
         use_Anderson_splits: bool = False,
-        check_with_rdkit: bool = False,
         check_validity: bool = False,
         start_index: Optional[int] = None,
         end_index: Optional[int] = None,
         canonicalize_atom_order: bool = False,
+        mmap_mode: Optional[str] = 'r',
     ):
-        super().__init__()
+        super().__init__(atomic_numbers=self.ATOMIC_NUMBERS)
 
         self.root_dir = os.path.join(root_dir, "qm9")
         self.split = split
         self.use_Anderson_splits = use_Anderson_splits
-        self.check_with_rdkit = check_with_rdkit
         self.check_validity = check_validity
         self.start_index = start_index
         self.end_index = end_index
         self.canonicalize_atom_order = canonicalize_atom_order
+        self.mmap_mode = mmap_mode
         
         self.preprocessed = False
         
         # Data storage
-        self._positions = None      # List of (N, 3) arrays
-        self._species = None        # List of (N,) arrays  
-        self._atom_types = None     # List of (N,) arrays
+        self._positions = None      # (N_total, 3) array
+        self._atomic_numbers = None # (N_total,) array  
+        self._offsets = None        # (N_mols + 1,) array for slicing
         self._n_atoms = None        # Array of molecule sizes
         self._indices = None        # Indices after filtering/splitting
-        self._properties = None     # List of property dicts
+        self._properties_df = None  # DataFrame of properties
 
         if self.use_Anderson_splits and self.split is None:
             raise ValueError("When use_Anderson_splits is True, split must be provided.")
 
-    @classmethod
-    def atom_types(cls) -> np.ndarray:
-        return utils.atomic_numbers_to_symbols(cls.get_atomic_numbers())
+        self.preprocess()
 
-    @classmethod
-    def get_atomic_numbers(cls) -> np.ndarray:
-        return cls.ATOMIC_NUMBERS
-    
-    @classmethod
-    def atomic_numbers_to_species(cls, atomic_numbers: np.ndarray) -> np.ndarray:
-        """Map atomic numbers to species indices."""
-        return np.searchsorted(cls.ATOMIC_NUMBERS, atomic_numbers)
+        readme_path = os.path.join(self.root_dir, "QM9_README")
+        print("Dataset description available at:", os.path.abspath(readme_path))
 
     def preprocess(self):
         """Load and preprocess QM9 data."""
@@ -92,22 +79,18 @@ class QM9(datatypes.MolecularDataset):
             return
         self.preprocessed = True
 
-        # Print README path
-        readme_path = os.path.join(self.root_dir, "QM9_README")
-        print("Dataset description available at:", os.path.abspath(readme_path))
-
         # Check for cached preprocessed data
-        cache_file = os.path.join(self.root_dir, "qm9_preprocessed.npz")
+        cache_file = os.path.join(self.root_dir, f"qm9_preprocessed_{self.check_validity}.npz")
+        prop_cache = cache_file.replace(".npz", ".pkl")
         
-        if os.path.exists(cache_file) and not self.check_with_rdkit and not self.check_validity:
-            self._load_from_cache(cache_file)
+        if os.path.exists(cache_file):
+            self._load_from_cache(cache_file, prop_cache)
         else:
             self._load_from_raw()
-            if not self.check_with_rdkit and not self.check_validity:
-                self._save_to_cache(cache_file)
+            self._save_to_cache(cache_file, prop_cache)
         
         # Apply splits
-        n_molecules = len(self._positions)
+        n_molecules = len(self._offsets) - 1
         
         if self.use_Anderson_splits:
             splits = _get_edm_splits(self.root_dir, n_molecules)
@@ -121,37 +104,52 @@ class QM9(datatypes.MolecularDataset):
         if self.end_index is not None:
             self._indices = self._indices[:self.end_index]
     
-    def _load_from_cache(self, cache_file: str):
+    def _load_from_cache(self, cache_file: str, prop_cache: str):
         """Load preprocessed data from cache."""
         print(f"Loading QM9 from cache: {os.path.abspath(cache_file)}")
-        data = np.load(cache_file, allow_pickle=True)
+        data = np.load(cache_file, mmap_mode=self.mmap_mode)
         
-        self._positions = list(data['positions'])
-        self._species = list(data['species'])
-        self._atom_types = list(data['atom_types'])
+        self._positions = data['positions']
+        self._atomic_numbers = data['atomic_numbers']
+        self._offsets = data['offsets']
         self._n_atoms = data['n_atoms']
-        self._properties = list(data['properties'])
+        self._properties_df = pd.read_pickle(prop_cache)
         
-        print(f"Loaded {len(self._positions)} molecules from cache")
+        print(f"Loaded {len(self._offsets) - 1} molecules from cache")
     
-    def _save_to_cache(self, cache_file: str):
+    def _save_to_cache(self, cache_file: str, prop_cache: str):
         """Save preprocessed data to cache."""
         print(f"Saving QM9 cache to: {cache_file}")
         np.savez(
             cache_file,
-            positions=np.array(self._positions, dtype=object),
-            species=np.array(self._species, dtype=object),
-            atom_types=np.array(self._atom_types, dtype=object),
+            positions=self._positions,
+            atomic_numbers=self._atomic_numbers,
+            offsets=self._offsets,
             n_atoms=self._n_atoms,
-            properties=np.array(self._properties, dtype=object),
         )
+        self._properties_df.to_pickle(prop_cache)
     
+    def _download_if_needed(self):
+        """Download and extract QM9 if not already present."""
+        raw_mols_path = os.path.join(self.root_dir, "gdb9.sdf")
+        
+        if os.path.exists(raw_mols_path):
+            return
+        
+        if not os.path.exists(self.root_dir):
+            os.makedirs(self.root_dir)
+        
+        print(f"Downloading QM9 dataset to {self.root_dir}")
+        path = utils.download_url(QM9_URL, self.root_dir)
+        utils.extract_zip(path, self.root_dir)
+        print("Download complete.")
+
     def _load_from_raw(self):
         """Load from raw SDF file."""
         import rdkit.Chem as Chem
         
         # Download if needed
-        _download_if_needed(self.root_dir)
+        self._download_if_needed()
         
         raw_mols_path = os.path.join(self.root_dir, "gdb9.sdf")
         supplier = Chem.SDMolSupplier(raw_mols_path, removeHs=False, sanitize=False)
@@ -161,10 +159,9 @@ class QM9(datatypes.MolecularDataset):
         properties_df = pd.read_csv(properties_csv_path)
         properties_df.set_index("mol_id", inplace=True)
         
-        self._positions = []
-        self._species = []
-        self._atom_types = []
-        self._properties = []
+        all_positions = []
+        all_atomic_numbers = []
+        all_properties = []
         n_atoms_list = []
         
         for index, mol in enumerate(tqdm.tqdm(supplier, desc="Loading QM9")):
@@ -173,25 +170,20 @@ class QM9(datatypes.MolecularDataset):
                 continue
             
             # Optional checks
-            if self.check_with_rdkit and not utils.is_molecule_sane(mol):
-                logging.info(f"Skipping molecule {index} due to sanity check failure")
-                continue
-            if self.check_validity and not utils.check_molecule_validity(mol):
-                logging.info(f"Skipping molecule {index} due to validity check failure")
-                continue
+            if self.check_validity:
+                if utils.check_with_xyz2mol(mol) and utils.is_molecule_sane(mol):
+                    logging.info(f"Skipping molecule {index} due to validity check failure")
+                    continue
             
             # Extract data
             positions = np.asarray(mol.GetConformer().GetPositions(), dtype=np.float32)
-            atomic_numbers = np.asarray([atom.GetAtomicNum() for atom in mol.GetAtoms()])
-            species = self.atomic_numbers_to_species(atomic_numbers)
-            atom_types = utils.atomic_numbers_to_symbols(atomic_numbers)
+            atomic_numbers = np.asarray([atom.GetAtomicNum() for atom in mol.GetAtoms()], dtype=np.int32)
             
             if self.canonicalize_atom_order:
                 ranks = Chem.CanonicalRankAtoms(mol)
                 order = np.argsort(ranks)
                 positions = positions[order]
                 atomic_numbers = atomic_numbers[order]
-                species = species[order]
 
                 # Renumber the mol to match the new ordering
                 mol = Chem.RenumberAtoms(mol, order.tolist())
@@ -202,20 +194,26 @@ class QM9(datatypes.MolecularDataset):
             mol_properties["mol_id"] = mol_id
             mol_properties["smiles"] = Chem.MolToSmiles(mol, allHsExplicit=True)
 
-            self._positions.append(positions)
-            self._species.append(species)
-            self._atom_types.append(atom_types)
-            self._properties.append(mol_properties)
+            all_positions.append(positions)
+            all_atomic_numbers.append(atomic_numbers)
+            all_properties.append(mol_properties)
             n_atoms_list.append(len(positions))
         
+        # Concatenate into large contiguous arrays
+        self._positions = np.concatenate(all_positions, axis=0)
+        self._atomic_numbers = np.concatenate(all_atomic_numbers, axis=0)
         self._n_atoms = np.array(n_atoms_list, dtype=np.int32)
-        print(f"Loaded {len(self._positions)} molecules")
+        self._properties_df = pd.DataFrame(all_properties)
+        
+        # Build offsets array
+        self._offsets = np.zeros(len(n_atoms_list) + 1, dtype=np.int32)
+        np.cumsum(n_atoms_list, out=self._offsets[1:])
+        
+        print(f"Loaded {len(self._n_atoms)} molecules")
 
-    @utils.after_preprocess
     def __len__(self) -> int:
         return len(self._indices)
 
-    @utils.after_preprocess
     def __getitem__(self, idx: int) -> datatypes.Graph:
         """Fast random access to a molecule."""
         if idx < 0:
@@ -225,11 +223,19 @@ class QM9(datatypes.MolecularDataset):
         
         real_idx = self._indices[idx]
         
+        # Slice using offsets
+        start = self._offsets[real_idx]
+        end = self._offsets[real_idx + 1]
+        
+        # Use views for slicing, cast to array for return
+        atomic_numbers = np.array(self._atomic_numbers[start:end])
+        
         return datatypes.Graph(
             nodes=dict(
-                positions=self._positions[real_idx],
-                species=self._species[real_idx],
-                atom_types=self._atom_types[real_idx],
+                positions=np.array(self._positions[start:end]),
+                atomic_numbers=atomic_numbers,
+                species=self.atomic_numbers_to_species(atomic_numbers),
+                atom_types=utils.atomic_numbers_to_symbols(atomic_numbers),
             ),
             edges=None,
             receivers=None,
@@ -237,30 +243,8 @@ class QM9(datatypes.MolecularDataset):
             globals=None,
             n_node=np.asarray([self._n_atoms[real_idx]]),
             n_edge=None,
-            properties=self._properties[real_idx],
+            properties=self._properties_df.iloc[real_idx].to_dict(),
         )
-
-    @utils.after_preprocess
-    def __iter__(self) -> Iterable[datatypes.Graph]:
-        """Iterate over all molecules."""
-        for i in range(len(self)):
-            yield self[i]
-
-
-def _download_if_needed(root_dir: str):
-    """Download and extract QM9 if not already present."""
-    raw_mols_path = os.path.join(root_dir, "gdb9.sdf")
-    
-    if os.path.exists(raw_mols_path):
-        return
-    
-    if not os.path.exists(root_dir):
-        os.makedirs(root_dir)
-    
-    print(f"Downloading QM9 dataset to {root_dir}")
-    path = utils.download_url(QM9_URL, root_dir)
-    utils.extract_zip(path, root_dir)
-    print("Download complete.")
 
 
 def _get_edm_splits(root_dir: str, n_molecules: int) -> Dict[str, np.ndarray]:

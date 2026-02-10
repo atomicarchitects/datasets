@@ -2,7 +2,7 @@
 
 Usage:
     from atomic_datasets import Tetris
-    from atomic_datasets.wrappers.jraph import JraphDataset
+    from atomic_datasets.wrappers.jax import JraphDataset
 
     dataset = JraphDataset(Tetris())
     graph = dataset[0]  # jraph.GraphsTuple
@@ -97,7 +97,3 @@ class JraphDataset:
 
     def __getitem__(self, idx: int) -> jraph.GraphsTuple:
         return graph_to_graphs_tuple(self._dataset[idx])
-
-    def __iter__(self):
-        for i in range(len(self)):
-            yield self[i]

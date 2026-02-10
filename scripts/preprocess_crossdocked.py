@@ -12,7 +12,6 @@ Output structure:
     processed/
     └── crossdocked/
         ├── train_positions.npy
-        ├── train_species.npy
         ├── train_atom_types.npy
         ├── train_offsets.npy
         ├── train_n_atoms.npy
@@ -28,6 +27,8 @@ import argparse
 import os
 import json
 import hashlib
+import subprocess
+import tarfile
 from datetime import datetime
 from typing import Dict, List
 
@@ -37,11 +38,10 @@ import tqdm
 import rdkit.Chem as Chem
 
 from atomic_datasets import utils
-from atomic_datasets.datasets.crossdocked import (
-    CrossDocked,
-    CROSSDOCKED_URL,
-    SPLIT_URL,
-)
+
+CROSSDOCKED_URL="https://ndownloader.figshare.com/articles/25878871/versions/3"
+SPLIT_URL="https://drive.google.com/uc?export=download&id=1mycOKpphVBQjxEbpn1AwdpQs8tNVbxKY"
+
 
 
 # =============================================================================
@@ -68,13 +68,33 @@ def ensure_downloaded(root_dir: str):
     raw_mols_path = os.path.join(root_dir, "crossdocked_pocket10_with_protein")
     if not os.path.exists(raw_mols_path):
         print(f"Downloading CrossDocked dataset to {root_dir}")
-        path = utils.download_url(CROSSDOCKED_URL, root_dir, "crossdocked.zip")
-        utils.extract_zip(path, root_dir)
-        utils.extract_gz(os.path.join(root_dir, "crossdocked_pocket10_with_protein.tar.gz"))
-        utils.extract_tar(
-            os.path.join(root_dir, "crossdocked_pocket10_with_protein.tar"),
-            root_dir,
+        
+        # Figshare serves a .zip containing crossdocked_pocket10_with_protein.tar.gz
+        zip_path = utils.download_url(
+            CROSSDOCKED_URL, root_dir, "crossdocked_pocket10_with_protein.zip"
         )
+        print(f"Downloaded to {zip_path}")
+        
+        # Step 1: Extract zip (use system unzip for large files)
+        print("Extracting zip...")
+        result = subprocess.run(
+            ["unzip", "-o", zip_path, "-d", root_dir],
+            capture_output=True, text=True,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(f"unzip failed: {result.stderr}")
+        
+        # Step 2: Extract the inner tar.gz
+        tar_gz_path = os.path.join(root_dir, "crossdocked_pocket10_with_protein.tar.gz")
+        assert os.path.exists(tar_gz_path), (
+            f"Expected {tar_gz_path} inside zip. "
+            f"Contents of {root_dir}: {os.listdir(root_dir)}"
+        )
+        print(f"Extracting {tar_gz_path}...")
+        with tarfile.open(tar_gz_path, "r:gz") as tar:
+            tar.extractall(path=root_dir)
+        
+        print(f"Extracted to {raw_mols_path}")
     else:
         print(f"Raw data already exists: {raw_mols_path}")
 
@@ -130,7 +150,6 @@ def load_raw_crossdocked(root_dir: str):
 
                 atomic_numbers = np.array([atom.GetAtomicNum() for atom in target.GetAtoms()])
                 positions = np.array(target.GetConformer().GetPositions(), dtype=np.float32)
-                species = CrossDocked.atomic_numbers_to_species(atomic_numbers)
                 atom_types = utils.atomic_numbers_to_symbols(atomic_numbers)
                 starting_fragment_mask = (
                     [1] * protein.GetNumAtoms() + [0] * ligand.GetNumAtoms()
@@ -138,7 +157,6 @@ def load_raw_crossdocked(root_dir: str):
 
                 yield {
                     "positions": positions,
-                    "species": species,
                     "atom_types": atom_types,
                     "pocket_file": pocket_file,
                     "starting_fragment_mask": starting_fragment_mask,
@@ -160,7 +178,6 @@ def save_split(
     file_hashes = {}
 
     positions_list = []
-    species_list = []
     atom_type_indices_list = []
     n_atoms_list = []
     offsets = [0]
@@ -169,7 +186,6 @@ def save_split(
     for g in graphs:
         n = len(g["positions"])
         positions_list.append(g["positions"])
-        species_list.append(g["species"])
         atom_type_indices_list.append(
             np.array([type_to_idx[a] for a in g["atom_types"]], dtype=np.int32)
         )
@@ -182,7 +198,6 @@ def save_split(
 
     files_to_save = {
         f"{prefix}_positions.npy": np.concatenate(positions_list, axis=0).astype(np.float32),
-        f"{prefix}_species.npy": np.concatenate(species_list, axis=0).astype(np.int32),
         f"{prefix}_atom_types.npy": np.concatenate(atom_type_indices_list, axis=0).astype(np.int32),
         f"{prefix}_n_atoms.npy": np.array(n_atoms_list, dtype=np.int32),
         f"{prefix}_offsets.npy": np.array(offsets, dtype=np.int64),
@@ -229,21 +244,11 @@ Each split (train/val/test) has the following files:
 | File | Description |
 |------|-------------|
 | {{split}}_positions.npy | Atomic positions (N_total, 3) float32 |
-| {{split}}_species.npy | Species indices (N_total,) int32 |
 | {{split}}_atom_types.npy | Atom type indices (N_total,) int32 |
 | {{split}}_offsets.npy | Complex start indices (n_complex+1,) int64 |
 | {{split}}_n_atoms.npy | Atoms per complex (n_complex,) int32 |
 | {{split}}_atom_type_lookup.npy | Index to symbol mapping |
 | {{split}}_properties.json | pocket_file and starting_fragment_mask per complex |
-
-## Usage
-```python
-from atomic_datasets import CrossDocked
-
-dataset = CrossDocked(root_dir="path/to/data", split="train")
-print(len(dataset))
-graph = dataset[0]
-```
 
 ## License
 
@@ -315,7 +320,8 @@ def preprocess_crossdocked(root_dir: str, output_dir: str) -> Dict:
 
     # Generate README
     readme = generate_readme(stats, all_file_hashes)
-    with open(os.path.join(output_dir, "README.md"), "w") as f:
+    readme_path = os.path.join(os.path.dirname(os.path.normpath(output_dir)), "README.md")
+    with open(readme_path, "w") as f:
         f.write(readme)
 
     # Save manifest

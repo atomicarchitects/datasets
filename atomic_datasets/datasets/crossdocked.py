@@ -2,225 +2,166 @@ from typing import Iterable, Dict, Optional, Tuple
 
 import os
 import logging
+import json
+import zipfile
 
 import numpy as np
-import pandas as pd
-import random
-import rdkit.Chem as Chem
-import tqdm
 
 from atomic_datasets import utils
 from atomic_datasets import datatypes
 
-CROSSDOCKED_URL="https://ndownloader.figshare.com/articles/25878871/versions/3"
-SPLIT_URL="https://drive.google.com/uc?export=download&id=1mycOKpphVBQjxEbpn1AwdpQs8tNVbxKY"
+# Zenodo URL for preprocessed data
+CROSSDOCKED_ZENODO_URL = "https://zenodo.org/records/18584578/files/crossdocked.zip"
 
 
 class CrossDocked(datatypes.MolecularDataset):
-    """The CrossDocked dataset from https://pubs.acs.org/doi/full/10.1021/acs.jcim.0c00411?casa_token=2OPWUPi2RRYAAAAA:_1AHwm3Btx8fT00JW78Et9v8il5KU_F8mR49MPH3owHoFlVDWzlE521XtH-_Sudhskke8V9O5YL0 as used by https://proceedings.neurips.cc/paper/2021/hash/314450613369e0ee72d0da7f6fee773c-Abstract.html."""
+    """
+    The CrossDocked dataset from https://pubs.acs.org/doi/full/10.1021/acs.jcim.0c00411
+    with splits from Luo et al. (https://proceedings.neurips.cc/paper/2021/hash/314450613369e0ee72d0da7f6fee773c-Abstract.html).
+
+    Loads preprocessed data from Zenodo (memory-mapped for efficiency).
+
+    Args:
+        root_dir: Directory to store/load data
+        split: Which split to use ('train', 'val', 'test')
+        start_index: Start index for slicing the dataset
+        end_index: End index for slicing the dataset
+        mmap_mode: Memory-map mode for numpy arrays ('r', 'r+', 'c', or None to load into memory)
+    """
+
+    ATOMIC_NUMBERS = np.asarray([
+        13, 33, 79,  5, 35,  6, 17, 27, 24, 29,  9, 26,  1, 80, 53,  3, 12,
+        42,  7,  8, 15, 44, 16, 21, 34, 14, 50, 23, 74, 39
+    ], dtype=np.int32)
 
     def __init__(
         self,
         root_dir: str,
-        split: Optional[str] = None,
-        use_SBDD_splits: bool = False,
+        split: str = "train",
         start_index: Optional[int] = None,
         end_index: Optional[int] = None,
-        train_on_single_molecule: Optional[bool] = False,
-        train_on_single_molecule_index: Optional[int] = 0,
-        use_cache: bool = True,  # New parameter to enable/disable caching
-        cache_dir: Optional[str] = None,  # New parameter to specify cache directory
+        mmap_mode: Optional[str] = 'r',
     ):
-        super().__init__()
+        super().__init__(atomic_numbers=self.ATOMIC_NUMBERS)
+
         self.root_dir = os.path.join(root_dir, "crossdocked")
         self.split = split
-        self.use_SBDD_splits = use_SBDD_splits
         self.start_index = start_index
         self.end_index = end_index
-        self.all_graphs = None
+        self.mmap_mode = mmap_mode
+
         self.preprocessed = False
-        self.train_on_single_molecule = train_on_single_molecule
-        self.train_on_single_molecule_index = train_on_single_molecule_index
-        self.use_cache = use_cache
-        self.cache_dir = cache_dir
 
-    @classmethod
-    def atom_types(cls) -> np.ndarray:
-        return utils.atomic_numbers_to_symbols(cls.get_atomic_numbers())
+        # Data storage
+        self._positions = None       # (N_total, 3) memory-mapped
+        self._atom_types = None      # (N_total,) memory-mapped (indices into lookup)
+        self._offsets = None         # (n_complexes + 1,) start indices
+        self._n_atoms = None         # (n_complexes,) atoms per complex
+        self._atom_type_lookup = None  # (n_types,) symbol strings
+        self._properties = None      # List of dicts (pocket_file, starting_fragment_mask)
+        self._indices = None         # Indices after slicing
 
-    @classmethod
-    def get_atomic_numbers(cls) -> np.ndarray:
-        return np.asarray([1, 3, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 19, 20, 21, 23, 24, 25, 26, 27, 29, 30, 33, 34, 35, 37, 39, 42, 44, 45, 48, 50, 51, 53, 55, 56, 65, 70, 74, 78, 79, 80, 81, 82])
+        if split not in ("train", "val", "test"):
+            raise ValueError(f"split must be 'train', 'val', or 'test', got '{split}'")
+
+        self.preprocess()
+
+        readme_path = os.path.join(self.root_dir, "README.md")
+        if os.path.exists(readme_path):
+            print("Dataset description available at:", os.path.abspath(readme_path))
 
     def preprocess(self):
-        self.preprocessed = True
-        preprocess_directory(self.root_dir)
-
-        if not self.use_SBDD_splits:
-            if self.train_on_single_molecule:
-                self.start_index = self.train_on_single_molecule_index
-                self.end_index = self.train_on_single_molecule_index + 1
-
-            # Use cached version if enabled
-            if self.use_cache:
-                load_crossdocked_fn = utils.cache_to_file("crossdocked", self.cache_dir)(load_crossdocked)
-            else:
-                load_crossdocked_fn = load_crossdocked
-
-            all_graphs = list(
-                load_crossdocked_fn(
-                    self.root_dir,
-                )
-            )
-            random.seed(0)
-            random.shuffle(all_graphs)
-            # if start_index/end_index are None, they default to the start/end of the list when used as indices
-            self.all_graphs = all_graphs[self.start_index : self.end_index]
+        """Initialize data access - downloads if needed, then loads."""
+        if self.preprocessed:
             return
 
-        self.all_graphs = list(load_crossdocked(self.root_dir))
-        self.all_graphs = np.array(self.all_graphs)
-        train_test_splits = get_SBDD_splits(self.root_dir)
-        split = []
-        for i, graph in enumerate(self.all_graphs):
-            if self.split == "val":
-                if graph["properties"]["pocket_file"] in train_test_splits["train"]: continue
-                if graph["properties"]["pocket_file"] in train_test_splits["test"]: continue
-                split.append(i)
-            if graph["properties"]["pocket_file"] in train_test_splits[self.split]:
-                split.append(i)
-            if len(split) == 100:  # TODO get a better way of making this split
-                break
-        # TODO further restrict the val set using clustering
+        self._ensure_downloaded()
+        self._load_data()
+        self._setup_indices()
 
-        if self.start_index is not None:
-            split = split[self.start_index :]
-        if self.end_index is not None:
-            split = split[: self.end_index]
-        self.all_graphs = self.all_graphs[split]
+        self.preprocessed = True
 
+    def _ensure_downloaded(self):
+        """Download and extract preprocessed files from Zenodo if not present."""
+        os.makedirs(self.root_dir, exist_ok=True)
 
-    @utils.after_preprocess
-    def __iter__(self) -> Iterable[datatypes.Graph]:
-        for graph in self.all_graphs:
-            yield graph
+        # Check if data is already extracted
+        marker_file = os.path.join(self.root_dir, "crossdocked", "train_positions.npy")
+        if os.path.exists(marker_file):
+            return
 
-    @utils.after_preprocess
+        zip_filename = "crossdocked.zip"
+        zip_path = os.path.join(self.root_dir, zip_filename)
+
+        if not os.path.exists(zip_path):
+            utils.download_url(CROSSDOCKED_ZENODO_URL, self.root_dir, filename=zip_filename)
+
+        print(f"Extracting {zip_filename}...")
+        with zipfile.ZipFile(zip_path, 'r') as zf:
+            zf.extractall(self.root_dir)
+
+        os.remove(zip_path)
+        print("Extraction complete.")
+
+    def _load_data(self):
+        """Load preprocessed data using memory mapping."""
+        prefix = self.split
+        print(f"Loading CrossDocked {self.split} split from {self.root_dir}")
+
+        self._positions = np.load(
+            os.path.join(self.root_dir, "crossdocked", f"{prefix}_positions.npy"),
+            mmap_mode=self.mmap_mode,
+        )
+        self._atom_types = np.load(
+            os.path.join(self.root_dir, "crossdocked", f"{prefix}_atom_types.npy"),
+            mmap_mode=self.mmap_mode,
+        )
+
+        self._offsets = np.load(os.path.join(self.root_dir, "crossdocked", f"{prefix}_offsets.npy"))
+        self._n_atoms = np.load(os.path.join(self.root_dir, "crossdocked", f"{prefix}_n_atoms.npy"))
+        self._atom_type_lookup = np.load(
+            os.path.join(self.root_dir, "crossdocked", f"{prefix}_atom_type_lookup.npy")
+        )
+
+        with open(os.path.join(self.root_dir, "crossdocked", f"{prefix}_properties.json")) as f:
+            self._properties = json.load(f)
+
+        n_complexes = len(self._n_atoms)
+        print(f"Loaded {n_complexes} complexes")
+
+    def _setup_indices(self):
+        """Setup indices with optional slicing."""
+        n_complexes = len(self._n_atoms)
+        self._indices = np.arange(n_complexes)
+        self._indices = self._indices[slice(self.start_index, self.end_index)]
+
     def __len__(self) -> int:
-        return len(self.all_graphs)
+        return len(self._indices)
 
-    @utils.after_preprocess
     def __getitem__(self, idx: int) -> datatypes.Graph:
-        return self.all_graphs[idx]
+        """Fast slice access via memory-mapped offsets."""
+        if idx < 0:
+            idx = len(self._indices) + idx
 
-    @classmethod
-    def species_to_atomic_numbers(cls) -> Dict[int, int]:
-        return {i: atomic_number for i, atomic_number in enumerate(CrossDocked.get_atomic_numbers())}
+        real_idx = self._indices[idx]
+        start, end = self._offsets[real_idx], self._offsets[real_idx + 1]
 
-def preprocess_directory(root_dir: str) -> None:
-    """Preprocess the files for the CrossDocked dataset."""
-    raw_mols_path = os.path.join(root_dir, "crossdocked_pocket10_with_protein")
-    if os.path.exists(raw_mols_path):
-        print(f"Using downloaded data: {raw_mols_path}")
-        return
+        species = np.array(self._atom_types[start:end])
+        atom_types = self._atom_type_lookup[species]
+        atomic_numbers = utils.atomic_symbols_to_numbers(atom_types)
 
-    if not os.path.exists(root_dir):
-        os.makedirs(root_dir)
-
-    print(f"Downloading CrossDocked dataset to {root_dir}")
-    path = utils.download_url(CROSSDOCKED_URL, root_dir, "crossdocked.zip")
-    utils.extract_zip(path, root_dir)
-    utils.extract_gz(os.path.join(root_dir, "crossdocked_pocket10_with_protein.tar.gz"))
-    utils.extract_tar(
-        os.path.join(root_dir, "crossdocked_pocket10_with_protein.tar"),
-        root_dir,
-    )
-
-    print(f"Downloading CrossDocked splits to {root_dir}")
-    path = utils.download_url(SPLIT_URL, root_dir, "split_by_name.pt")
-
-    print("Download complete.")
-
-def load_crossdocked(
-    root_dir: str,
-    start_index: Optional[int] = None,
-    end_index: Optional[int] = None,
-) -> Iterable[datatypes.Graph]:
-    """Load the CrossDocked2020 dataset."""
-
-    data_dir = os.path.join(root_dir, "crossdocked_pocket10_with_protein")
-
-    for pocket in tqdm.tqdm(os.listdir(data_dir), desc="Loading CrossDocked"):
-        if not os.path.isdir(os.path.join(data_dir, pocket)):
-            continue
-        pocket_dir = os.path.join(data_dir, pocket)
-        files = os.listdir(pocket_dir)
-        pdb_ids = set(['_'.join(x.split('_')[:2]) for x in files])
-
-        for pdb_id in pdb_ids:
-            file_pairs = []
-            for f in files:
-                if not (len(pdb_id) < len(f) and f[:len(pdb_id)] == pdb_id):
-                    continue
-                if f[-4:] == ".sdf":
-                    ligand_file = os.path.join(pocket, f)
-                    pocket_file = ligand_file[:-4] + "_pocket10.pdb"
-                    file_pairs.append(
-                        (pocket_file, ligand_file)
-                    )
-                    continue
-
-            for (pocket_file, ligand_file) in file_pairs:
-                protein = Chem.MolFromPDBFile(
-                    os.path.join(data_dir, pocket_file),
-                    sanitize=False,
-                    removeHs=False,
-                )
-                with Chem.SDMolSupplier(
-                    os.path.join(data_dir, ligand_file),
-                    sanitize=False,
-                    removeHs=False,
-                ) as suppl:
-                    ligand = next(suppl)
-                try:
-                    target = Chem.CombineMols(protein, ligand)
-                except Exception as e:
-                    print("ligand file path:", os.path.join(data_dir, ligand_file))
-                    print("ligand:", ligand)
-                    print("files:", (pocket_file, ligand_file))
-                    raise e
-
-                atomic_numbers = np.asarray([atom.GetAtomicNum() for atom in target.GetAtoms()])
-
-                frag = datatypes.Graph(
-                    nodes=dict(
-                        positions=np.asarray(target.GetConformer().GetPositions()),
-                        species=CrossDocked.atomic_numbers_to_species(atomic_numbers),
-                        atom_types=utils.atomic_numbers_to_symbols(atomic_numbers),
-                    ),
-                    edges=None,
-                    receivers=None,
-                    senders=None,
-                    globals=None,
-                    n_node=np.asarray([target.GetNumAtoms()]),
-                    n_edge=None,
-                    properties=dict(
-                        starting_fragment_mask=np.array(
-                            [1] * protein.GetNumAtoms() + [0] * ligand.GetNumAtoms(), dtype=bool
-                        ),
-                        pocket_file=pocket_file,
-                        mol=target,
-                    ),
-                )
-                yield frag
-
-def get_SBDD_splits(
-    root_dir: str,
-) -> Dict[str, np.ndarray]:
-    """Use splits from Luo et al. (https://proceedings.neurips.cc/paper/2021/hash/314450613369e0ee72d0da7f6fee773c-Abstract.html)."""
-    import torch
-
-    train_test_splits = torch.load(os.path.join(root_dir, "split_by_name.pt"))
-    splits = {split: [x[0] for x in train_test_splits[split]] for split in train_test_splits}
-
-    return splits
+        return datatypes.Graph(
+            nodes=dict(
+                positions=np.array(self._positions[start:end]),
+                atomic_numbers=atomic_numbers,
+                species=species,
+                atom_types=atom_types,
+            ),
+            edges=None,
+            senders=None,
+            receivers=None,
+            n_edge=None,
+            n_node=np.asarray([self._n_atoms[real_idx]]),
+            globals=None,
+            properties=self._properties[real_idx],
+        )

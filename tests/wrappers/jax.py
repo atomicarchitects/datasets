@@ -8,7 +8,7 @@ jraph = pytest.importorskip("jraph")
 jnp = jax.numpy
 
 from atomic_datasets import Tetris, PlatonicSolids
-from atomic_datasets.wrappers.jraph import JraphDataset, graph_to_graphs_tuple
+from atomic_datasets.wrappers.jax import JraphDataset, graph_to_graphs_tuple
 
 
 @pytest.fixture

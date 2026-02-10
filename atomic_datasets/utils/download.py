@@ -13,7 +13,7 @@ import urllib.request
 
 
 def clone_url(url: str, root: str) -> str:
-    """Clone if repo does not exist in root already. Returns path to repo."""
+    """Clone git repo if it does not exist in root already. Returns path to repo."""
     repo_path = os.path.join(root, url.rpartition("/")[-1].rpartition(".")[0])
 
     if os.path.exists(repo_path):
@@ -22,6 +22,7 @@ def clone_url(url: str, root: str) -> str:
 
     print(f"Cloning {url} to {repo_path}")
     git.Repo.clone_from(url, repo_path)
+    print(f"Cloned {url} to {repo_path}")
 
     return repo_path
 

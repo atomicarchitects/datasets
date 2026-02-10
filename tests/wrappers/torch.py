@@ -7,7 +7,7 @@ torch = pytest.importorskip("torch")
 pyg = pytest.importorskip("torch_geometric")
 
 from atomic_datasets import Tetris, PlatonicSolids
-from atomic_datasets.wrappers.pyg import PyTorchGeometricDataset, graph_to_data
+from atomic_datasets.wrappers.torch import PyTorchGeometricDataset, graph_to_data
 
 
 @pytest.fixture

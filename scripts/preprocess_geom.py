@@ -324,7 +324,7 @@ def preprocess_geom_drugs(
     
     # Generate README
     readme = generate_geom_readme(stats, all_file_hashes)
-    readme_path = os.path.join(output_dir, "README.md")
+    readme_path = os.path.join(os.path.dirname(os.path.normpath(output_dir)), "README.md")
     with open(readme_path, 'w') as f:
         f.write(readme)
     
@@ -373,16 +373,6 @@ Each split (train/val/test) has the following files:
 | {{split}}_mol_indices.npy | Molecule index for each conformer (n_conf,) int32 |
 | {{split}}_atom_type_lookup.npy | Index to symbol mapping |
 | {{split}}_smiles.json | SMILES strings for each conformer |
-
-## Usage
-
-```python
-from atomic_datasets import GEOMDrugs
-
-dataset = GEOMDrugs(root_dir="path/to/this/folder", split="train")
-print(len(dataset))
-mol = dataset[0]
-```
 
 ## License
 

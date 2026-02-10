@@ -37,7 +37,7 @@ pip install -e .
 ```python
 from atomic_datasets import QM9, GEOMDrugs
 
-# The first access will trigger preprocessing which may take some time,
+# Initialization will trigger preprocessing which may take some time,
 # but once preprocessed, load speeds should be fast!
 dataset = QM9(
     root_dir="data/",
@@ -57,12 +57,18 @@ for graph in dataset:
     print(f"  HOMO-LUMO gap: {properties['gap']:.4f} Ha")
 ```
 
-We also provide some simple utilities. For example, to save a graph as a `.xyz` file:
+We also provide some simple utilities. For example, to visualize a graph with [py3Dmol](https://pypi.org/project/py3Dmol/) in a notebook:
 ```python
 from atomic_datasets import utils
 
+utils.visualize(graph)
+```
+or save a graph as a `.xyz` file:
+```python
 utils.save_xyz(graph, "example_graph")
 ```
+
+See [examples/viz.ipynb] for a simple example.
 
 ### Data Format
 
@@ -92,7 +98,7 @@ Available properties vary by dataset.
 We provide wrappers for both [PyTorch](https://pytorch.org/) via [PyTorch Geometric](https://pytorch-geometric.readthedocs.io/en/latest/):
 ```python
 from atomic_datasets import Tetris
-from atomic_datasets.wrappers import PyTorchGeometricDataset
+from atomic_datasets.wrappers.torch import PyTorchGeometricDataset
 from torch_geometric.loader import DataLoader
 
 dataset = PyTorchGeometricDataset(Tetris())
@@ -107,7 +113,7 @@ for batch in loader:
 and [JAX](https://docs.jax.dev/en/latest/) via [Jraph](https://github.com/google-deepmind/jraph):
 ```python
 from atomic_datasets import Tetris
-from atomic_datasets.wrappers import JraphDataset
+from atomic_datasets.wrappers.jax import JraphDataset
 import jraph
 
 dataset = JraphDataset(Tetris())
@@ -119,6 +125,8 @@ print(batch.n_node)                    # [4, 4, 4, 4]
 ```
 
 To avoid any version conflicts, this repository does not have hard dependencies on PyTorch, JAX, or their respective graph libraries. You must install them separately if you want to use the wrappers.
+
+See [examples/torch.ipynb] and [examples/jax.ipynb] for some simple examples.
 
 ## License
 
