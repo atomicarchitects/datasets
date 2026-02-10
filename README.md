@@ -25,7 +25,7 @@ We also provide some toy datasets (Platonic Solids, 3D Tetris) for testing.
 
 Install directly from PyPI with [pip](https://pypi.org/project/pip/):
 ```
-pip install atomic-datasets
+[uv] pip install atomic-datasets
 ```
 or, from source:
 ```bash
@@ -66,7 +66,7 @@ utils.visualize(graph)
 ```
 or save a graph as a `.xyz` file:
 ```python
-utils.save_xyz(graph, "example_graph")
+utils.save_xyz(graph, "example_graph.xyz")
 ```
 
 See [examples/viz.ipynb](./examples/viz.ipynb) for a simple example.
