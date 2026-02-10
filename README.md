@@ -23,7 +23,7 @@ We also provide some toy datasets (Platonic Solids, 3D Tetris) for testing.
 
 ## Installation
 
-Install directly from PyPI with [pip](https://pypi.org/project/pip/):
+Install directly from PyPI with [pip](https://pypi.org/project/pip/) or [uv](https://docs.astral.sh/uv/):
 ```
 [uv] pip install atomic-datasets
 ```
