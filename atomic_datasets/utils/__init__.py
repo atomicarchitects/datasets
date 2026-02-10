@@ -11,4 +11,3 @@ from .decorators import after_preprocess
 from .cache import cache_to_file
 from .xyz import save_as_xyz
 from .periodic_table import PeriodicTable
-from .visualizer import visualize, visualize_raw

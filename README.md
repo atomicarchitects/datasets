@@ -36,7 +36,7 @@ pip install -e .
 
 ## Example
 ```python
-from atomic_datasets import QM9, GEOMDrugs
+from atomic_datasets.datasets import QM9, GEOMDrugs
 
 # Initialization will trigger preprocessing which may take some time,
 # but once preprocessed, load speeds should be fast!

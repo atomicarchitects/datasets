@@ -1,3 +1,6 @@
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 from .datatypes import Graph, MolecularDataset
+
+# For legacy reasons, we allow importing datasets from the top-level namespace, but we recommend using the submodules for clarity
+from .datasets import *
