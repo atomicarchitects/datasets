@@ -25,7 +25,7 @@ requires-python = ">=3.10"
 
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.in"]}
-optional-dependencies = {"dev" = {file = ["requirements-dev.in"]}, "visualization" = {file = ["requirements-visualization.in"]}}
+optional-dependencies = {"dev" = {file = ["requirements-dev.in"]}}
 readme = {file = "README.md"}
 
 [project.urls]
