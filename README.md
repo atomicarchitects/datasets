@@ -3,11 +3,11 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-This repository provides an easy interface to the following 3D molecular datasets in [PyTorch](https://pytorch.org/) and [JAX](https://docs.jax.dev/en/latest/):
+This repository provides an easy (but fast!) interface to the following 3D molecular datasets in [numpy](https://numpy.org/), with wrappers in [PyTorch](https://pytorch.org/) and [JAX](https://docs.jax.dev/en/latest/):
 - [QM9](https://www.nature.com/articles/sdata201422): ~134000 small organic molecules with quantum chemical properties.
 - [GEOM (Drugs)](https://www.nature.com/articles/s41597-022-01288-4): a subset of the GEOM dataset containing ~300000 drug-like molecules with multiple conformers and properties.
 - [tmQM](https://pubs.acs.org/doi/10.1021/acs.jcim.0c01041): ~86000 transition metal complexes with quantum chemical properties.
-- [ChEMBL3D](https://chemrxiv.org/doi/10.26434/chemrxiv-2025-k4h7v): ~1.8 million drug-like molecules with low-energy conformers and properties.
+- [ChEMBL3D](https://chemrxiv.org/doi/10.26434/chemrxiv-2025-k4h7v): ~1800000 drug-like molecules with low-energy conformers and properties.
 
 Our hope is to standardize [processing](https://arxiv.org/abs/2505.00169v2) and splits which have long been [inconsistent](https://arxiv.org/abs/2505.00518) across different papers, and to provide a common interface across programming frameworks for working with these datasets. 
 
@@ -274,6 +274,17 @@ If you use this repository, please cite:
 	note = {PMID: 32865404},
 	url = {https://doi.org/10.1021/acs.jcim.0c00411},
 	eprint = {https://doi.org/10.1021/acs.jcim.0c00411}
+}
+@inproceedings{sbdd,
+	 author = {Luo, Shitong and Guan, Jiaqi and Ma, Jianzhu and Peng, Jian},
+	 booktitle = {Advances in Neural Information Processing Systems},
+	 editor = {M. Ranzato and A. Beygelzimer and Y. Dauphin and P.S. Liang and J. Wortman Vaughan},
+	 pages = {6229--6239},
+	 publisher = {Curran Associates, Inc.},
+	 title = {A 3D Generative Model for Structure-Based Drug Design},
+	 url = {https://proceedings.neurips.cc/paper_files/paper/2021/file/314450613369e0ee72d0da7f6fee773c-Paper.pdf},
+	 volume = {34},
+	 year = {2021}
 }
 ```
 
