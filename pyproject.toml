@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "atomic-datasets"
-version = "0.1.0"
+version = "0.1.1"
 description = "An easy-to-use API for popular 3D molecular datasets"
 authors = [
     { name = "Ameya Daigavane" },
@@ -19,9 +19,9 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Chemistry",
     "Topic :: Database",
 ]
-dynamic = ["readme", "dependencies", "optional-dependencies"]
+dynamic = ["dependencies", "optional-dependencies"]
 requires-python = ">=3.10"
-
+readme = {file = "README.md", content-type = "text/markdown"}
 
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.in"]}

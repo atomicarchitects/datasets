@@ -5,8 +5,8 @@
 
 This repository provides an easy (but fast!) interface to to popular 3D molecular datasets in pure [numpy](https://numpy.org/), with wrappers in [PyTorch](https://pytorch.org/) and [JAX](https://docs.jax.dev/en/latest/)!
 
-<p align="center" width="100%">
-<img width="2948" height="2303" alt="atomic-datasets" src="https://github.com/user-attachments/assets/6cd41eac-144d-4213-937e-494e57435195" />
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/6cd41eac-144d-4213-937e-494e57435195" alt="atomic-datasets" width="100%">
 </p>
 
 Datasets supported:
@@ -14,7 +14,7 @@ Datasets supported:
 - [GEOM (Drugs)](https://www.nature.com/articles/s41597-022-01288-4): a subset of the GEOM dataset containing ~300000 drug-like molecules with multiple conformers and properties.
 - [tmQM](https://pubs.acs.org/doi/10.1021/acs.jcim.0c01041): ~86000 transition metal complexes with quantum chemical properties.
 - [ChEMBL3D](https://chemrxiv.org/doi/10.26434/chemrxiv-2025-k4h7v): ~1800000 drug-like molecules with low-energy conformers and properties.
-- [CrossDocked](https://pubs.acs.org/doi/full/10.1021/acs.jcim.0c00411?casa_token=2OPWUPi2RRYAAAAA%3A_1AHwm3Btx8fT00JW78Et9v8il5KU_F8mR49MPH3owHoFlVDWzlE521XtH-_Sudhskke8V9O5YL0): ~100000 protein-ligand pairs after filtering for high-quality pairs with binding pose RMSD less than 1A.
+- [CrossDocked](https://pubs.acs.org/doi/full/10.1021/acs.jcim.0c00411?casa_token=2OPWUPi2RRYAAAAA%3A_1AHwm3Btx8fT00JW78Et9v8il5KU_F8mR49MPH3owHoFlVDWzlE521XtH-_Sudhskke8V9O5YL0): ~100000 protein-ligand pairs after filtering for high-quality pairs with binding pose RMSD less than 1Å.
 
 Our hope is to standardize [processing](https://arxiv.org/abs/2505.00169v2) and splits which have long been [inconsistent](https://arxiv.org/abs/2505.00518) across different papers, and to provide a common interface across programming frameworks for working with these datasets. 
 
