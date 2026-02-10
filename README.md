@@ -62,7 +62,7 @@ We also provide some simple utilities. For example, to visualize a graph with [p
 ```python
 from atomic_datasets import utils
 
-utils.visualize(graph)
+utils.visualizer.visualize(graph)
 ```
 or save a graph as a `.xyz` file:
 ```python
