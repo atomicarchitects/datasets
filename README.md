@@ -36,7 +36,7 @@ pip install -e .
 
 ## Example
 ```python
-from atomic_datasets import QM9, GEOMDrugs
+from atomic_datasets.datasets import QM9, GEOMDrugs
 
 # Initialization will trigger preprocessing which may take some time,
 # but once preprocessed, load speeds should be fast!
@@ -98,7 +98,7 @@ Available properties vary by dataset.
 
 We provide wrappers for both [PyTorch](https://pytorch.org/) via [PyTorch Geometric](https://pytorch-geometric.readthedocs.io/en/latest/):
 ```python
-from atomic_datasets import Tetris
+from atomic_datasets.datasets import Tetris
 from atomic_datasets.wrappers.torch import PyTorchGeometricDataset
 from torch_geometric.loader import DataLoader
 
@@ -113,7 +113,7 @@ for batch in loader:
 
 and [JAX](https://docs.jax.dev/en/latest/) via [Jraph](https://github.com/google-deepmind/jraph):
 ```python
-from atomic_datasets import Tetris
+from atomic_datasets.datasets import Tetris
 from atomic_datasets.wrappers.jax import JraphDataset
 import jraph
 
