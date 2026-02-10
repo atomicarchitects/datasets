@@ -23,9 +23,9 @@ We also provide some toy datasets (Platonic Solids, 3D Tetris) for testing.
 
 ## Installation
 
-Install directly from PyPI with [pip](https://pypi.org/project/pip/):
+Install directly from PyPI with [pip](https://pypi.org/project/pip/) or [uv](https://docs.astral.sh/uv/):
 ```
-pip install atomic-datasets
+[uv] pip install atomic-datasets
 ```
 or, from source:
 ```bash
@@ -66,7 +66,7 @@ utils.visualize(graph)
 ```
 or save a graph as a `.xyz` file:
 ```python
-utils.save_xyz(graph, "example_graph")
+utils.save_xyz(graph, "example_graph.xyz")
 ```
 
 See [examples/viz.ipynb](./examples/viz.ipynb) for a simple example.
@@ -98,7 +98,7 @@ Available properties vary by dataset.
 
 We provide wrappers for both [PyTorch](https://pytorch.org/) via [PyTorch Geometric](https://pytorch-geometric.readthedocs.io/en/latest/):
 ```python
-from atomic_datasets import Tetris
+from atomic_datasets.datasets import Tetris
 from atomic_datasets.wrappers.torch import PyTorchGeometricDataset
 from torch_geometric.loader import DataLoader
 
@@ -113,7 +113,7 @@ for batch in loader:
 
 and [JAX](https://docs.jax.dev/en/latest/) via [Jraph](https://github.com/google-deepmind/jraph):
 ```python
-from atomic_datasets import Tetris
+from atomic_datasets.datasets import Tetris
 from atomic_datasets.wrappers.jax import JraphDataset
 import jraph
 
