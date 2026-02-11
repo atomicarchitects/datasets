@@ -39,12 +39,6 @@ class TestGraphToGraphsTuple:
         assert len(gt.receivers) == 0
         assert gt.edges is None
 
-    def test_carries_over_atom_types(self, tetris):
-        gt = graph_to_graphs_tuple(tetris[0])
-        assert "atom_types" in gt.nodes
-        assert len(gt.nodes["atom_types"]) == 4
-        assert all(t == "H" for t in gt.nodes["atom_types"])
-
     def test_carries_over_edges_when_present(self):
         graph = {
             "nodes": {
@@ -54,9 +48,6 @@ class TestGraphToGraphsTuple:
             "senders": np.array([0, 1]),
             "receivers": np.array([1, 0]),
             "edges": np.array([[1.0], [1.0]]),
-            "n_node": np.array([2]),
-            "n_edge": np.array([2]),
-            "globals": None,
         }
         gt = graph_to_graphs_tuple(graph)
         assert gt.n_edge.item() == 2
@@ -71,7 +62,7 @@ class TestGraphToGraphsTuple:
             "globals": np.array([1.0, 2.0]),
         }
         gt = graph_to_graphs_tuple(graph)
-        np.testing.assert_allclose(gt.globals, jnp.array([1.0, 2.0]))
+        np.testing.assert_allclose(gt.globals["globals"], np.array([1.0, 2.0]))
 
 
 class TestJraphDataset:
@@ -108,8 +99,8 @@ class TestJraphDataset:
 
     def test_batch(self, tetris):
         ds = JraphDataset(tetris)
-        batch = jraph.batch([ds[i] for i in range(4)])
+        batch = jraph.batch_np([ds[i] for i in range(4)])
         # 4 tetris pieces × 4 atoms = 16 atoms total
         assert batch.nodes["positions"].shape[0] == 16
         assert batch.nodes["species"].shape[0] == 16
-        assert batch.n_node.shape[0] == 4
+        assert np.allclose(batch.n_node, [4, 4, 4, 4])

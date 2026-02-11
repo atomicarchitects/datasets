@@ -2,7 +2,6 @@ from typing import Iterable
 import numpy as np
 
 from atomic_datasets import datatypes
-from atomic_datasets import utils
 
 
 def compute_minimum_distance_to_first_node(solid: np.ndarray) -> float:
@@ -35,7 +34,7 @@ class PlatonicSolids(datatypes.MolecularDataset):
         start_index: int = None,
         end_index: int = None,
     ):
-        super().__init__()
+        super().__init__(atomic_numbers=[1])
         self.all_graphs = list(load_platonic_solids())
 
         if start_index is not None:
@@ -43,18 +42,6 @@ class PlatonicSolids(datatypes.MolecularDataset):
 
         if end_index is not None:
             self.all_graphs = self.all_graphs[:end_index]
-
-    @classmethod
-    def atom_types(cls) -> np.ndarray:
-        return utils.atomic_numbers_to_symbols(cls.get_atomic_numbers())
-
-    @classmethod
-    def get_atomic_numbers(cls) -> np.ndarray:
-        return np.asarray([1])
-
-    def __iter__(self) -> Iterable[datatypes.Graph]:
-        for graph in self.all_graphs:
-            yield graph
 
     def __len__(self) -> int:
         return len(self.all_graphs)

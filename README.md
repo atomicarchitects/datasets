@@ -102,27 +102,35 @@ from atomic_datasets.datasets import Tetris
 from atomic_datasets.wrappers.torch import PyTorchGeometricDataset
 from torch_geometric.loader import DataLoader
 
-dataset = PyTorchGeometricDataset(Tetris())
-loader = DataLoader(dataset, batch_size=32, shuffle=True)
+dataset = QM9(root_dir="data/")
+dataset = PyTorchGeometricDataset(dataset)
 
-for batch in loader:
-    print(batch.pos.shape)      # (total_atoms_in_batch, 3)
-    print(batch.species.shape)  # (total_atoms_in_batch,)
-    print(batch.batch.shape)    # (total_atoms_in_batch,)
+loader = DataLoader(dataset, batch_size=4, shuffle=True)
+batch = next(iter(loader))
+
+print(batch.pos.shape)
+print(batch.species.shape)
+print(batch.atom_types)
+print(batch.smiles)
 ```
 
 and [JAX](https://docs.jax.dev/en/latest/) via [Jraph](https://github.com/google-deepmind/jraph):
 ```python
-from atomic_datasets.datasets import Tetris
+from atomic_datasets.datasets import QM9
 from atomic_datasets.wrappers.jax import JraphDataset
 import jraph
 
-dataset = JraphDataset(Tetris())
-batch = jraph.batch([dataset[i] for i in range(4)])
+dataset = QM9(root_dir="data/")
+dataset = JraphDataset(dataset)
 
-print(batch.nodes["positions"].shape)  # (16, 3)
-print(batch.nodes["species"].shape)    # (16,)
-print(batch.n_node)                    # [4, 4, 4, 4]
+# Since we have some strings, we use numpy to batch.
+batch = jraph.batch_np([dataset[i] for i in range(4)])
+
+print(batch.nodes["positions"].shape)
+print(batch.nodes["species"].shape)
+print(batch.nodes["atom_types"])
+print(batch.globals["properties"]["smiles"])
+print(batch.n_node)
 ```
 
 To avoid any version conflicts, this repository does not have hard dependencies on PyTorch, JAX, or their respective graph libraries. You must install them separately if you want to use the wrappers.

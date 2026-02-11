@@ -47,7 +47,7 @@ def download_url(url: str, root: str, filename: Optional[str] = None) -> str:
 
         raise ValueError(f"Could not download {url}")
 
-    chunk_size = 1024
+    chunk_size = 1024 * 1024  # 1 MB
     total_size = int(data.info()["Content-Length"].strip())
 
     if os.path.exists(file_path):
@@ -63,7 +63,7 @@ def download_url(url: str, root: str, filename: Optional[str] = None) -> str:
                 if not chunk:
                     break
                 f.write(chunk)
-                pbar.update(chunk_size)
+                pbar.update(len(chunk))
 
     return file_path
 

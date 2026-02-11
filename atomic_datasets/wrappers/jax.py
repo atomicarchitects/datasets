@@ -9,7 +9,7 @@ Usage:
 
     # Batch multiple graphs:
     import jraph
-    batch = jraph.batch([dataset[i] for i in range(4)])
+    batch = jraph.batch_np([dataset[i] for i in range(4)])
 
     # Pad for JIT compatibility:
     padded = jraph.pad_with_graphs(batch, n_node=20, n_edge=0, n_graph=5)
@@ -36,8 +36,8 @@ def graph_to_graphs_tuple(graph: dict) -> jraph.GraphsTuple:
     source graph.
     """
     nodes = graph["nodes"]
-    positions = jnp.array(nodes["positions"], dtype=jnp.float32)
-    species = jnp.array(nodes["species"], dtype=jnp.int32)
+    positions = np.array(nodes["positions"], dtype=np.float32)
+    species = np.array(nodes["species"], dtype=np.int32)
     n_node = positions.shape[0]
 
     node_features = {"positions": positions, "species": species}
@@ -46,30 +46,38 @@ def graph_to_graphs_tuple(graph: dict) -> jraph.GraphsTuple:
     for key, val in nodes.items():
         if key in ("positions", "species"):
             continue
-        val = np.asarray(val)
-        if val.dtype.kind in ("U", "S", "O"):
-            node_features[key] = val.tolist()
-        else:
-            node_features[key] = jnp.array(val)
+        node_features[key] = np.asarray(val)
 
     # Edges
     if graph.get("senders") is not None and graph.get("receivers") is not None:
-        senders = jnp.array(graph["senders"], dtype=jnp.int32)
-        receivers = jnp.array(graph["receivers"], dtype=jnp.int32)
+        senders = np.array(graph["senders"], dtype=np.int32)
+        receivers = np.array(graph["receivers"], dtype=np.int32)
         n_edge = len(senders)
         edges = None
         if graph.get("edges") is not None:
-            edges = jnp.array(graph["edges"], dtype=jnp.float32)
+            edges = np.array(graph["edges"], dtype=np.float32)
     else:
-        senders = jnp.array([], dtype=jnp.int32)
-        receivers = jnp.array([], dtype=jnp.int32)
+        senders = np.array([], dtype=np.int32)
+        receivers = np.array([], dtype=np.int32)
         n_edge = 0
         edges = None
 
     # Globals
-    globals_ = None
+    globals_ = {}
     if graph.get("globals") is not None:
-        globals_ = jnp.array(graph["globals"], dtype=jnp.float32)
+        val = np.asarray(graph["globals"])
+        if val.ndim == 0:
+            val = val[None]  # Make scalar globals 1D for Jraph
+        globals_["globals"] = val
+
+    # Add properties as globals if present
+    if graph.get("properties") is not None:
+        globals_["properties"] = {}
+        for key, val in graph["properties"].items():
+            val = np.asarray(val)
+            if val.ndim == 0:
+                val = val[None]  # Make scalar properties 1D for Jraph
+            globals_["properties"][key] = val
 
     return jraph.GraphsTuple(
         nodes=node_features,
@@ -77,8 +85,8 @@ def graph_to_graphs_tuple(graph: dict) -> jraph.GraphsTuple:
         senders=senders,
         receivers=receivers,
         globals=globals_,
-        n_node=jnp.array([n_node]),
-        n_edge=jnp.array([n_edge]),
+        n_node=np.array([n_node]),
+        n_edge=np.array([n_edge]),
     )
 
 
