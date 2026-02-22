@@ -182,6 +182,9 @@ class GEOMDrugs(datatypes.MolecularDataset):
 
     def __getitem__(self, idx: int) -> datatypes.Graph:
         """Fast slice access via memory-mapped offsets."""
+        if isinstance(idx, slice):
+            return [self[i] for i in range(*idx.indices(len(self)))]
+
         if idx < 0:
             idx = len(self._indices) + idx
 
@@ -196,7 +199,7 @@ class GEOMDrugs(datatypes.MolecularDataset):
 
         return datatypes.Graph(
             nodes=dict(
-                positions=np.array(self._positions[start:end]),
+                positions=positions,
                 atomic_numbers=atomic_numbers,
                 species=species,
                 atom_types=atom_types,
