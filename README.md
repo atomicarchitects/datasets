@@ -48,7 +48,7 @@ dataset = QM9(
 # dataset = GEOMDrugs(root_dir="data/", split="train")
 
 for graph in dataset:
-    positions = graph["nodes"]["positions"]   # (N, 3) array of 3D coordinates
+    positions = graph["nodes"]["positions"]   # (N, 3) array of 3D coordinates in Angstroms
     species = graph["nodes"]["species"]       # (N,) array of atomic species indices
     atom_types = graph["nodes"]["atom_types"] # (N,) array of element symbols
     properties = graph["properties"]          # dict of molecular properties
