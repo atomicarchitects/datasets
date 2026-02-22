@@ -60,12 +60,12 @@ for graph in dataset:
 
 We also provide some simple utilities. For example, to visualize a graph with [py3Dmol](https://pypi.org/project/py3Dmol/) in a notebook:
 ```python
-from atomic_datasets import utils
-
-utils.visualizer.visualize(graph)
+from atomic_datasets.utils import visualizer
+visualizer.visualize(graph)
 ```
 or save a graph as a `.xyz` file:
 ```python
+from atomic_datasets import utils
 utils.save_xyz(graph, "example_graph.xyz")
 ```
 
