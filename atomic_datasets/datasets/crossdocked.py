@@ -179,19 +179,23 @@ class CrossDocked(datatypes.MolecularDataset):
 
     def __getitem__(self, idx: int) -> datatypes.Graph:
         """Fast slice access via memory-mapped offsets."""
+        if isinstance(idx, slice):
+            return [self[i] for i in range(*idx.indices(len(self)))]
+
         if idx < 0:
             idx = len(self._indices) + idx
 
         real_idx = self._indices[idx]
         start, end = self._offsets[real_idx], self._offsets[real_idx + 1]
 
+        positions = np.array(self._positions[start:end])
         species = np.array(self._atom_types[start:end])
         atom_types = self._atom_type_lookup[species]
         atomic_numbers = utils.atomic_symbols_to_numbers(atom_types)
 
         return datatypes.Graph(
             nodes=dict(
-                positions=np.array(self._positions[start:end]),
+                positions=positions,
                 atomic_numbers=atomic_numbers,
                 species=species,
                 atom_types=atom_types,
