@@ -224,6 +224,9 @@ class QM9(datatypes.MolecularDataset):
 
     def __getitem__(self, idx: int) -> datatypes.Graph:
         """Fast random access to a molecule."""
+        if isinstance(idx, slice):
+            return [self[i] for i in range(*idx.indices(len(self)))]
+
         if idx < 0:
             idx = len(self._indices) + idx
         if idx < 0 or idx >= len(self._indices):
