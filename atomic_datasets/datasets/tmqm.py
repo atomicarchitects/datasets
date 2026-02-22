@@ -447,6 +447,9 @@ class tmQM(datatypes.MolecularDataset):
 
     def __getitem__(self, idx: int) -> datatypes.Graph:
         """Fast slice access via offsets (O(1))."""
+        if isinstance(idx, slice):
+            return [self[i] for i in range(*idx.indices(len(self)))]
+
         real_idx = self._indices[idx]
         start, end = self._offsets[real_idx], self._offsets[real_idx + 1]
         atomic_numbers = np.array(self._atomic_numbers[start:end])
