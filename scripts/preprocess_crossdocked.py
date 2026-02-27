@@ -39,20 +39,22 @@ import rdkit.Chem as Chem
 
 from atomic_datasets import utils
 
-CROSSDOCKED_URL="https://ndownloader.figshare.com/articles/25878871/versions/3"
-SPLIT_URL="https://drive.google.com/uc?export=download&id=1mycOKpphVBQjxEbpn1AwdpQs8tNVbxKY"
-
+CROSSDOCKED_URL = "https://ndownloader.figshare.com/articles/25878871/versions/3"
+SPLIT_URL = (
+    "https://drive.google.com/uc?export=download&id=1mycOKpphVBQjxEbpn1AwdpQs8tNVbxKY"
+)
 
 
 # =============================================================================
 # Utilities
 # =============================================================================
 
+
 def compute_file_hash(filepath: str) -> str:
     """Compute SHA256 hash of a file."""
     sha256 = hashlib.sha256()
-    with open(filepath, 'rb') as f:
-        for chunk in iter(lambda: f.read(8192), b''):
+    with open(filepath, "rb") as f:
+        for chunk in iter(lambda: f.read(8192), b""):
             sha256.update(chunk)
     return sha256.hexdigest()
 
@@ -61,6 +63,7 @@ def compute_file_hash(filepath: str) -> str:
 # Download and extract
 # =============================================================================
 
+
 def ensure_downloaded(root_dir: str):
     """Download and extract raw CrossDocked data and splits if not present."""
     os.makedirs(root_dir, exist_ok=True)
@@ -68,22 +71,23 @@ def ensure_downloaded(root_dir: str):
     raw_mols_path = os.path.join(root_dir, "crossdocked_pocket10_with_protein")
     if not os.path.exists(raw_mols_path):
         print(f"Downloading CrossDocked dataset to {root_dir}")
-        
+
         # Figshare serves a .zip containing crossdocked_pocket10_with_protein.tar.gz
         zip_path = utils.download_url(
             CROSSDOCKED_URL, root_dir, "crossdocked_pocket10_with_protein.zip"
         )
         print(f"Downloaded to {zip_path}")
-        
+
         # Step 1: Extract zip (use system unzip for large files)
         print("Extracting zip...")
         result = subprocess.run(
             ["unzip", "-o", zip_path, "-d", root_dir],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         )
         if result.returncode != 0:
             raise RuntimeError(f"unzip failed: {result.stderr}")
-        
+
         # Step 2: Extract the inner tar.gz
         tar_gz_path = os.path.join(root_dir, "crossdocked_pocket10_with_protein.tar.gz")
         assert os.path.exists(tar_gz_path), (
@@ -93,7 +97,7 @@ def ensure_downloaded(root_dir: str):
         print(f"Extracting {tar_gz_path}...")
         with tarfile.open(tar_gz_path, "r:gz") as tar:
             tar.extractall(path=root_dir)
-        
+
         print(f"Extracted to {raw_mols_path}")
     else:
         print(f"Raw data already exists: {raw_mols_path}")
@@ -110,6 +114,7 @@ def ensure_downloaded(root_dir: str):
 # Load raw data
 # =============================================================================
 
+
 def load_raw_crossdocked(root_dir: str):
     """Load raw CrossDocked data from SDF/PDB files."""
     data_dir = os.path.join(root_dir, "crossdocked_pocket10_with_protein")
@@ -120,12 +125,12 @@ def load_raw_crossdocked(root_dir: str):
             continue
 
         files = os.listdir(pocket_dir)
-        pdb_ids = set(['_'.join(x.split('_')[:2]) for x in files])
+        pdb_ids = set(["_".join(x.split("_")[:2]) for x in files])
 
         for pdb_id in pdb_ids:
             file_pairs = []
             for f in files:
-                if not (len(pdb_id) < len(f) and f[:len(pdb_id)] == pdb_id):
+                if not (len(pdb_id) < len(f) and f[: len(pdb_id)] == pdb_id):
                     continue
                 if f.endswith(".sdf"):
                     ligand_file = os.path.join(pocket, f)
@@ -136,11 +141,13 @@ def load_raw_crossdocked(root_dir: str):
                 try:
                     protein = Chem.MolFromPDBFile(
                         os.path.join(data_dir, pocket_file),
-                        sanitize=False, removeHs=False,
+                        sanitize=False,
+                        removeHs=False,
                     )
                     with Chem.SDMolSupplier(
                         os.path.join(data_dir, ligand_file),
-                        sanitize=False, removeHs=False,
+                        sanitize=False,
+                        removeHs=False,
                     ) as suppl:
                         ligand = next(suppl)
                     target = Chem.CombineMols(protein, ligand)
@@ -148,12 +155,16 @@ def load_raw_crossdocked(root_dir: str):
                     print(f"Skipping {ligand_file}: {e}")
                     continue
 
-                atomic_numbers = np.array([atom.GetAtomicNum() for atom in target.GetAtoms()])
-                positions = np.array(target.GetConformer().GetPositions(), dtype=np.float32)
-                atom_types = utils.atomic_numbers_to_symbols(atomic_numbers)
-                starting_fragment_mask = (
-                    [1] * protein.GetNumAtoms() + [0] * ligand.GetNumAtoms()
+                atomic_numbers = np.array(
+                    [atom.GetAtomicNum() for atom in target.GetAtoms()]
                 )
+                positions = np.array(
+                    target.GetConformer().GetPositions(), dtype=np.float32
+                )
+                atom_types = utils.atomic_numbers_to_symbols(atomic_numbers)
+                starting_fragment_mask = [1] * protein.GetNumAtoms() + [
+                    0
+                ] * ligand.GetNumAtoms()
 
                 yield {
                     "positions": positions,
@@ -166,6 +177,7 @@ def load_raw_crossdocked(root_dir: str):
 # =============================================================================
 # Save split
 # =============================================================================
+
 
 def save_split(
     output_dir: str,
@@ -191,14 +203,20 @@ def save_split(
         )
         n_atoms_list.append(n)
         offsets.append(offsets[-1] + n)
-        properties_list.append({
-            "pocket_file": g["pocket_file"],
-            "starting_fragment_mask": g["starting_fragment_mask"],
-        })
+        properties_list.append(
+            {
+                "pocket_file": g["pocket_file"],
+                "starting_fragment_mask": g["starting_fragment_mask"],
+            }
+        )
 
     files_to_save = {
-        f"{prefix}_positions.npy": np.concatenate(positions_list, axis=0).astype(np.float32),
-        f"{prefix}_atom_types.npy": np.concatenate(atom_type_indices_list, axis=0).astype(np.int32),
+        f"{prefix}_positions.npy": np.concatenate(positions_list, axis=0).astype(
+            np.float32
+        ),
+        f"{prefix}_atom_types.npy": np.concatenate(
+            atom_type_indices_list, axis=0
+        ).astype(np.int32),
         f"{prefix}_n_atoms.npy": np.array(n_atoms_list, dtype=np.int32),
         f"{prefix}_offsets.npy": np.array(offsets, dtype=np.int64),
         f"{prefix}_atom_type_lookup.npy": atom_type_lookup,
@@ -222,6 +240,7 @@ def save_split(
 # Main preprocessing
 # =============================================================================
 
+
 def generate_readme(stats: Dict, file_hashes: Dict[str, str]) -> str:
     """Generate README for CrossDocked processed data."""
     total = sum(s["complexes"] for s in stats.values())
@@ -233,7 +252,7 @@ Preprocessed version of the CrossDocked dataset with SBDD splits for fast loadin
 - **Source**: https://pubs.acs.org/doi/full/10.1021/acs.jcim.0c00411
 - **Splits**: Luo et al. (https://proceedings.neurips.cc/paper/2021/hash/314450613369e0ee72d0da7f6fee773c-Abstract.html)
 - **Total complexes**: {total:,}
-- **Splits**: train ({stats['train']['complexes']:,}), val ({stats['val']['complexes']:,}), test ({stats['test']['complexes']:,})
+- **Splits**: train ({stats["train"]["complexes"]:,}), val ({stats["val"]["complexes"]:,}), test ({stats["test"]["complexes"]:,})
 - **Val split**: 5% of training data (random seed 0)
 - **Generated**: {datetime.now().isoformat()}
 
@@ -298,7 +317,9 @@ def preprocess_crossdocked(root_dir: str, output_dir: str) -> Dict:
         "test": test_graphs,
     }
 
-    print(f"Split sizes: train={len(train_graphs)}, val={len(val_graphs)}, test={len(test_graphs)}")
+    print(
+        f"Split sizes: train={len(train_graphs)}, val={len(val_graphs)}, test={len(test_graphs)}"
+    )
 
     # Build global atom type lookup
     atom_type_set = set()
@@ -314,13 +335,17 @@ def preprocess_crossdocked(root_dir: str, output_dir: str) -> Dict:
 
     for split_name, graphs in split_graphs.items():
         print(f"\nSaving {split_name} split: {len(graphs)} complexes")
-        file_hashes = save_split(output_dir, split_name, graphs, type_to_idx, atom_type_lookup)
+        file_hashes = save_split(
+            output_dir, split_name, graphs, type_to_idx, atom_type_lookup
+        )
         all_file_hashes.update(file_hashes)
         stats[split_name] = {"complexes": len(graphs)}
 
     # Generate README
     readme = generate_readme(stats, all_file_hashes)
-    readme_path = os.path.join(os.path.dirname(os.path.normpath(output_dir)), "README.md")
+    readme_path = os.path.join(
+        os.path.dirname(os.path.normpath(output_dir)), "README.md"
+    )
     with open(readme_path, "w") as f:
         f.write(readme)
 
@@ -342,6 +367,7 @@ def preprocess_crossdocked(root_dir: str, output_dir: str) -> Dict:
 # CLI
 # =============================================================================
 
+
 def main():
     parser = argparse.ArgumentParser(
         description="Preprocess CrossDocked dataset",
@@ -349,11 +375,15 @@ def main():
         epilog=__doc__,
     )
     parser.add_argument(
-        "--root-dir", type=str, required=True,
+        "--root-dir",
+        type=str,
+        required=True,
         help="Directory for raw CrossDocked data (will download if missing)",
     )
     parser.add_argument(
-        "--output-dir", type=str, required=True,
+        "--output-dir",
+        type=str,
+        required=True,
         help="Directory for processed output",
     )
     args = parser.parse_args()
