@@ -1,8 +1,6 @@
 import numpy as np
 from typing import Sequence, Iterable, Any
 
-from . import utils
-
 Graph = dict
 
 
