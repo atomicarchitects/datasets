@@ -33,11 +33,9 @@ class MolecularDataset:
 
     def atom_types(self) -> np.ndarray:
         """Returns the array of atomic symbols corresponding to species indices."""
-        from utils.rdkit import atomic_number_to_symbol
+        from .utils.rdkit import atomic_numbers_to_symbols
 
-        return np.array(
-            [atomic_number_to_symbol(z) for z in self._species_to_atomic_map]
-        )
+        return atomic_numbers_to_symbols(self._species_to_atomic_map)
 
     def atomic_numbers_to_species(self, atomic_numbers: np.ndarray) -> np.ndarray:
         """
