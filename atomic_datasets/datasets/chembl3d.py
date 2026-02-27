@@ -181,6 +181,9 @@ class ChEMBL3D(datatypes.MolecularDataset):
         Returns:
             A datatypes.Graph object containing positions, species, and atomic properties.
         """
+        if isinstance(idx, slice):
+            return [self[i] for i in range(*idx.indices(len(self)))]
+
         if idx < 0:
             idx = len(self._indices) + idx
         if idx < 0 or idx >= len(self._indices):

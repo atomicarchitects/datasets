@@ -48,7 +48,7 @@ dataset = QM9(
 # dataset = GEOMDrugs(root_dir="data/", split="train")
 
 for graph in dataset:
-    positions = graph["nodes"]["positions"]   # (N, 3) array of 3D coordinates
+    positions = graph["nodes"]["positions"]   # (N, 3) array of 3D coordinates in Angstroms
     species = graph["nodes"]["species"]       # (N,) array of atomic species indices
     atom_types = graph["nodes"]["atom_types"] # (N,) array of element symbols
     properties = graph["properties"]          # dict of molecular properties
@@ -60,12 +60,12 @@ for graph in dataset:
 
 We also provide some simple utilities. For example, to visualize a graph with [py3Dmol](https://pypi.org/project/py3Dmol/) in a notebook:
 ```python
-from atomic_datasets import utils
-
-utils.visualizer.visualize(graph)
+from atomic_datasets.utils import visualizer
+visualizer.visualize(graph)
 ```
 or save a graph as a `.xyz` file:
 ```python
+from atomic_datasets import utils
 utils.save_xyz(graph, "example_graph.xyz")
 ```
 
