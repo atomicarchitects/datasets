@@ -175,7 +175,7 @@ class QM9(datatypes.MolecularDataset):
 
             # Optional checks
             if self.check_validity:
-                if utils.check_with_xyz2mol(mol) and utils.is_molecule_sane(mol):
+                if not (utils.check_with_xyz2mol(mol) and utils.is_molecule_sane(mol)):
                     logging.info(
                         f"Skipping molecule {index} due to validity check failure"
                     )
