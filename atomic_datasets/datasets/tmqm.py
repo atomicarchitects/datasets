@@ -37,8 +37,11 @@ class tmQM(datatypes.MolecularDataset):
         train_on_single_molecule_index: Index of molecule to use if train_on_single_molecule=True
     """
 
-    # Atomic numbers present in tmQM: H (1) to Hg (80)
-    ATOMIC_NUMBERS = np.arange(1, 81)
+    # Atomic numbers present in tmQM
+    ATOMIC_NUMBERS = np.array([1, 5, 6, 7, 8, 9, 14, 15, 16, 17, 21, 22,
+                               23, 24, 25, 26, 27, 28, 29, 30, 33, 34, 35,
+                               39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 53, 57,
+                               72, 73, 74, 75, 76, 77, 78, 79, 80])
 
     def __init__(
         self,
